@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>worklog</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --sage:#7a9e87;--sage-l:#e8f0eb;--sage-m:#b5cebe;
+  --cream:#faf8f4;--warm:#f2ede6;--stone:#8c8680;--stone-l:#c5c0bb;
+  --ink:#2d2926;--ink-l:#5c5753;
+  --sky:#7aaec9;--sky-l:#e3f1f8;
+  --blush:#d4888a;--blush-l:#faeaea;
+  --amber:#c4944a;--amber-l:#fdf0db;
+  --purple:#9b87c0;--purple-l:#f0ecfa;
+  --r:14px;--rs:8px;
+  --sh:0 2px 12px rgba(45,41,38,.08);--shh:0 6px 24px rgba(45,41,38,.14);
+}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--ink);font-size:14px;line-height:1.6}
+input,textarea,select{font-family:'Noto Sans TC',sans-serif;color:var(--ink)}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;background:#fff;border-bottom:1px solid rgba(45,41,38,.07);position:sticky;top:0;z-index:200;gap:10px;flex-wrap:wrap}
+.brand{font-family:'DM Serif Display',serif;font-size:18px}.brand span{color:var(--sage);font-style:italic}
+.nav-tabs{display:flex;gap:3px;background:var(--warm);padding:4px;border-radius:var(--rs)}
+.ntab{padding:6px 13px;border:none;background:transparent;border-radius:6px;font-size:12px;color:var(--stone);cursor:pointer;transition:all .2s;white-space:nowrap}
+.ntab.on{background:#fff;color:var(--ink);font-weight:500;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.nav-date{font-size:12px;color:var(--stone);white-space:nowrap}
+.sync-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--warm);color:var(--stone);transition:all .3s}
+.sync-badge.syncing{background:var(--amber-l);color:var(--amber)}
+.sync-badge.synced{background:var(--sage-l);color:var(--sage)}
+.sync-badge.error{background:var(--blush-l);color:var(--blush)}
+.page{display:none;padding:20px 24px;max-width:980px;margin:0 auto;animation:fi .3s ease}
+.page.on{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.card{background:#fff;border-radius:var(--r);padding:20px;box-shadow:var(--sh)}
+.ctitle{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.ctitle-l{display:flex;align-items:center;gap:6px}
+.btn{padding:7px 14px;border:none;border-radius:var(--rs);cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;transition:all .2s}
+.btn-sage{background:var(--sage);color:#fff}.btn-sage:hover{background:#6b9077}
+.btn-ghost{background:none;border:1.5px solid rgba(45,41,38,.15);color:var(--stone)}.btn-ghost:hover{border-color:var(--sage);color:var(--sage)}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:6px}
+.bico{background:none;border:none;cursor:pointer;color:var(--stone);padding:3px 5px;border-radius:4px;font-size:13px;line-height:1;transition:all .15s}
+.bico:hover{background:var(--warm);color:var(--ink)}
+.fi{width:100%;padding:8px 12px;border:1.5px solid rgba(45,41,38,.1);border-radius:var(--rs);font-size:13px;outline:none;transition:border-color .2s;background:var(--cream)}
+.fi:focus{border-color:var(--sage)}
+textarea.fi{resize:vertical;min-height:60px;line-height:1.6}
+.fl{font-size:11px;color:var(--stone);letter-spacing:.04em;margin-bottom:4px;margin-top:12px}
+.pills{display:flex;gap:5px;flex-wrap:wrap}
+.pill{padding:5px 11px;border:1.5px solid rgba(45,41,38,.12);border-radius:20px;font-size:11px;cursor:pointer;background:none;color:var(--stone);transition:all .15s}
+.pill.on{background:var(--sage-l);border-color:var(--sage);color:var(--sage)}
+.pill.social.on{background:var(--sage-l);border-color:var(--sage);color:var(--sage)}
+.pill.blog.on{background:var(--sky-l);border-color:var(--sky);color:var(--sky)}
+.pill.event.on{background:var(--amber-l);border-color:var(--amber);color:var(--amber)}
+.pill.edm.on{background:var(--blush-l);border-color:var(--blush);color:var(--blush)}
+.pill.kol.on{background:var(--purple-l);border-color:var(--purple);color:var(--purple)}
+.pill.high.on{background:var(--blush-l);border-color:var(--blush);color:var(--blush)}
+.pill.low.on{background:var(--sage-l);border-color:var(--sage);color:var(--sage)}
+.pill.mid.on{background:var(--amber-l);border-color:var(--amber);color:var(--amber)}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500}
+.badge.social{background:var(--sage-l);color:var(--sage)}.badge.blog{background:var(--sky-l);color:var(--sky)}
+.badge.event{background:var(--amber-l);color:var(--amber)}.badge.edm{background:var(--blush-l);color:var(--blush)}.badge.kol{background:var(--purple-l);color:var(--purple)}
+.ai-badge{display:inline-flex;align-items:center;gap:4px;background:var(--sage-l);color:var(--sage);font-size:10px;padding:3px 8px;border-radius:10px;font-weight:500;margin-bottom:10px}
+.ai-box{background:transparent;border-radius:0;padding:8px 0 8px 14px;font-size:13px;line-height:1.8;color:var(--ink-l);border-left:2px solid var(--sage-m);white-space:pre-line}
+.ai-box.amber{border-left-color:var(--amber)}
+.ai-box.sky{border-left-color:var(--sky)}.ai-box.amber{background:transparent;border-color:var(--amber)}.ai-box.sky{background:transparent;border-color:var(--sky-l)}
+
+.mo{display:none;position:fixed;inset:0;background:rgba(45,41,38,.4);z-index:300;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.mo.on{display:flex}
+.modal{background:#fff;border-radius:var(--r);padding:26px;width:min(640px,100%);box-shadow:0 20px 60px rgba(0,0,0,.15);animation:su .22s ease;position:relative}
+.modal.wide{width:min(840px,100%)}
+@keyframes su{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.mclose{position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--stone);font-size:20px;line-height:1}
+.mtitle{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:3px}
+.msub{font-size:12px;color:var(--stone);margin-bottom:18px}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid rgba(45,41,38,.07)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--sage-m);border-radius:4px}
+.dash-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+.todo-count-badge{font-size:11px;background:var(--sage-l);color:var(--sage);padding:2px 8px;border-radius:10px;font-weight:500}
+.todo-add-row{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap}
+.todo-add-row .fi{flex:1;min-width:140px}
+.todo-list{display:flex;flex-direction:column;gap:5px;max-height:210px;overflow-y:auto}
+.ti{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--rs);transition:background .15s}
+.ti:hover{background:var(--warm)}
+.tck{width:16px;height:16px;border:1.5px solid var(--sage-m);border-radius:4px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.tck.on{background:var(--sage);border-color:var(--sage)}
+.ttxt{flex:1;font-size:13px}.ttxt.done{text-decoration:line-through;opacity:.4}
+.ptag{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:500;flex-shrink:0}
+.ptag.high{background:var(--blush-l);color:var(--blush)}.ptag.mid{background:var(--amber-l);color:var(--amber)}.ptag.low{background:var(--sage-l);color:var(--sage)}
+.tdel{background:none;border:none;color:var(--stone);cursor:pointer;opacity:0;font-size:13px;padding:0 2px}
+.ti:hover .tdel{opacity:.5}.ti:hover .edit-todo-btn{opacity:.6 !important}
+.week-prev{margin-top:12px;padding-top:12px;border-top:1px solid rgba(45,41,38,.07)}
+.wrow{display:flex;align-items:flex-start;gap:8px;padding:3px 0}
+.wday{font-size:10px;color:var(--stone);width:72px;flex-shrink:0;padding-top:2px;white-space:nowrap}
+.wchips{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.wchip{font-size:10px;padding:2px 7px;border-radius:8px;color:var(--ink-l);background:var(--warm)}.wchip.high{background:var(--blush-l);color:var(--blush)}.wchip.mid{background:var(--warm);color:var(--ink-l)}.wchip.low{background:var(--sage-l);color:var(--sage)}
+.mbtn{flex:1;aspect-ratio:1;border:1.5px solid rgba(45,41,38,.1);border-radius:var(--rs);background:none;cursor:pointer;font-size:15px;transition:all .15s}
+.mbtn:hover,.mbtn.on{border-color:var(--sage);background:var(--sage-l);transform:scale(1.05)}
+.mood-row{display:flex;gap:5px;margin-bottom:9px}
+.memo-list{display:flex;flex-direction:column;gap:6px;margin-top:9px;max-height:150px;overflow-y:auto}
+.mentry{background:var(--warm);border-radius:var(--rs);padding:8px 11px;font-size:12px;line-height:1.6}
+.mdate{font-size:10px;color:var(--stone);margin-bottom:1px}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:15px}
+.pcard{background:#fff;border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);cursor:pointer;transition:all .2s}
+.pcard:hover{box-shadow:var(--shh);transform:translateY(-2px)}
+.pthumb{height:78px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.pthumb img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.pthumb-ico{position:relative;z-index:1}
+.pthumb.social{background:linear-gradient(135deg,#e8f0eb,#d0e4d8)}.pthumb.blog{background:linear-gradient(135deg,#e3f1f8,#cce4f0)}
+.pthumb.event{background:linear-gradient(135deg,#fdf0db,#f5ddb4)}.pthumb.edm{background:linear-gradient(135deg,#faeaea,#f0cccc)}.pthumb.kol{background:linear-gradient(135deg,#f0ecfa,#ddd4f5)}
+.ptype-badge{position:absolute;top:7px;right:7px;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500;background:rgba(255,255,255,.88);z-index:2}
+.pbody{padding:10px 13px}.pname{font-size:13px;font-weight:500;margin-bottom:3px}.pmeta{font-size:11px;color:var(--stone)}
+.presult{font-size:11px;color:var(--sage);margin-top:4px;font-weight:500}.psubc{font-size:10px;color:var(--stone);margin-top:3px}
+.proj-add{background:var(--warm);border:2px dashed rgba(45,41,38,.12);border-radius:var(--r);min-height:148px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--stone);gap:5px;font-size:13px;transition:all .2s}
+.proj-add:hover{border-color:var(--sage);color:var(--sage);background:var(--sage-l)}
+.tico{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px}
+.tico svg{width:18px;height:18px;stroke-width:1.5;fill:none}
+.tico.social{background:var(--sage-l)}.tico.social svg{stroke:var(--sage)}
+.tico.blog{background:var(--sky-l)}.tico.blog svg{stroke:var(--sky)}
+.tico.event{background:var(--amber-l)}.tico.event svg{stroke:var(--amber)}
+.tico.edm{background:var(--blush-l)}.tico.edm svg{stroke:var(--blush)}
+.tico.kol{background:var(--purple-l)}.tico.kol svg{stroke:var(--purple)}
+.sub-item{border:1.5px solid rgba(45,41,38,.08);border-radius:var(--rs);overflow:hidden;margin-bottom:7px}
+.sub-hd{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;background:var(--warm);transition:background .15s}
+.sub-hd:hover{background:var(--sage-l)}.sub-hd-title{flex:1;font-size:13px;font-weight:500}
+.sub-bd{padding:12px;background:#fff;display:none;border-top:1px solid rgba(45,41,38,.07)}.sub-bd.on{display:block}
+.sub-img{width:100%;max-height:140px;object-fit:cover;border-radius:6px;margin-top:6px}
+.stask{display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0;color:var(--ink-l)}
+.sck{width:14px;height:14px;border:1.5px solid var(--sage-m);border-radius:3px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.sck.on{background:var(--sage);border-color:var(--sage)}
+.gantt-wrap{overflow-x:auto;margin-top:12px}.gantt-inner{min-width:480px}
+.g-row{display:flex;align-items:center;height:30px;margin-bottom:3px}
+.g-label{width:120px;flex-shrink:0;font-size:11px;color:var(--ink-l);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding-right:8px}
+.g-track{flex:1;background:rgba(45,41,38,.05);border-radius:4px;height:16px;position:relative}
+.g-bar{position:absolute;height:100%;border-radius:4px;display:flex;align-items:center;padding:0 5px;font-size:9px;color:#fff;white-space:nowrap;overflow:hidden;min-width:4px}
+.g-hdr{display:flex;margin-bottom:5px;margin-left:120px}
+.g-mth{flex:1;font-size:10px;color:var(--stone);text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cdh{text-align:center;font-size:11px;color:var(--stone);padding:6px 0;font-weight:500}
+.cdh.we{color:var(--stone-l)}
+.cc{min-height:82px;background:#fff;border-radius:var(--rs);padding:5px;cursor:pointer;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.04);position:relative;overflow:hidden}
+.cc:hover{box-shadow:var(--sh)}.cc.other{background:var(--warm);opacity:.4;pointer-events:none}
+.cc.today{border:2px solid var(--sage)}.cc.we-cell{background:#f8f6f3}.cc.leave-day{background:#fdf0f0}
+.cnum{font-weight:500;font-size:11px;color:var(--ink-l);margin-bottom:2px;position:relative;z-index:1}
+.cc.today .cnum{color:var(--sage);font-weight:700}.cc.we-cell .cnum{color:var(--stone-l)}
+.hblk{font-size:9px;padding:1px 4px;border-radius:3px;margin-bottom:1px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hblk.tw{background:var(--blush-l);color:var(--blush)}.hblk.int{background:var(--purple-l);color:var(--purple)}
+.hblk.mkt{background:var(--amber-l);color:var(--amber)}.hblk.race{background:var(--sky-l);color:var(--sky)}
+.cev{font-size:9px;padding:1px 4px;border-radius:3px;margin-bottom:1px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cev.memo{background:var(--warm);color:var(--ink-l)}.cev.todo{background:var(--sage-l);color:var(--sage)}
+.cev.plan{background:var(--sky-l);color:var(--sky)}.cev.race-ev{background:var(--sky-l);color:var(--sky)}
+.cev.leave{background:var(--blush-l);color:var(--blush)}
+.mood-dot{width:7px;height:7px;border-radius:50%;position:absolute;top:5px;right:5px}
+.cfil{padding:4px 10px;border:1.5px solid rgba(45,41,38,.1);border-radius:14px;cursor:pointer;background:none;font-size:11px;font-family:'Noto Sans TC',sans-serif;color:var(--stone);transition:all .15s}
+.cfil.on{border-color:var(--sage);background:var(--sage-l);color:var(--sage)}
+.cfil.tw.on{border-color:var(--blush);background:var(--blush-l);color:var(--blush)}
+.cfil.int.on{border-color:var(--purple);background:var(--purple-l);color:var(--purple)}
+.cfil.mkt.on{border-color:var(--amber);background:var(--amber-l);color:var(--amber)}
+.cfil.race.on{border-color:var(--sky);background:var(--sky-l);color:var(--sky)}
+.lv-bg{background:var(--warm);border-radius:20px;height:8px;overflow:hidden;flex:1}
+.lv-bar{height:100%;border-radius:20px;background:var(--sage);transition:width .5s}
+.gc{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);margin-bottom:12px}
+.gc-hd{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.gc-title{flex:1;font-size:14px;font-weight:500}
+.gc-pct{font-family:'DM Serif Display',serif;font-size:18px;color:var(--sage);flex-shrink:0;min-width:40px;text-align:right}
+.gc-bg{background:var(--warm);border-radius:20px;height:6px;overflow:hidden;margin-bottom:8px}
+.gc-bar{height:100%;border-radius:20px;background:var(--sage);transition:width .5s}
+.step-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-l);padding:3px 0}
+.stck{width:14px;height:14px;border:1.5px solid var(--sage-m);border-radius:3px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.stck.on{background:var(--sage);border-color:var(--sage)}
+.gc-ai{background:var(--sage-l);border-radius:var(--rs);padding:9px 12px;font-size:12px;line-height:1.7;color:var(--ink-l);margin-top:8px;border-left:2px solid var(--sage)}
+.qtab{padding:5px 13px;border:none;background:var(--warm);border-radius:6px;font-size:12px;cursor:pointer;color:var(--stone);transition:all .2s}
+.qtab.on{background:var(--sage);color:#fff}
+.stc{background:#fff;border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
+.stc:hover{box-shadow:var(--shh);transform:translateY(-1px)}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="brand">work<span>log</span></div>
+  <div class="nav-tabs">
+    <button class="ntab on" onclick="tab('dashboard')">總覽</button>
+    <button class="ntab" onclick="tab('projects')">專案庫</button>
+    <button class="ntab" onclick="tab('monthly')">月份規劃</button>
+    <button class="ntab" onclick="tab('personal')">個人中心</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px"><span class="sync-badge" id="syncStatus">本地</span><button class="btn btn-ghost btn-sm" onclick="openDataModal()" style="font-size:11px">備份</button><div class="nav-date" id="navDate"></div></div>
+</nav>
+
+<div class="page on" id="pg-dashboard">
+  <div class="dash-grid">
+    <div class="card">
+      <div class="ctitle"><div class="ctitle-l">今日待辦 <span class="todo-count-badge" id="todayCnt">0</span></div></div>
+      <div class="todo-add-row">
+        <input class="fi" id="todoTxt" placeholder="新增待辦，Enter 確認..." onkeydown="if(event.key==='Enter')qTodo()">
+        <select id="todoPri" style="padding:7px 8px;border:1.5px solid rgba(45,41,38,.1);border-radius:var(--rs);font-size:11px;outline:none;background:var(--cream)"><option value="mid">一般</option><option value="high">緊急</option><option value="low">輕鬆</option></select>
+        <input type="date" id="todoDateQ" class="fi" style="width:118px;flex:none">
+      </div>
+      <div class="todo-list" id="todoList"></div>
+      <div class="week-prev">
+        <div style="font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--stone);margin-bottom:7px">本週預告</div>
+        <div id="weekPrev"></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="ctitle"><div class="ctitle-l">心情記事</div></div>
+        <div class="mood-row" id="moodRow">
+          <button class="mbtn on" data-m="😊" onclick="selMood(this)">😊</button>
+          <button class="mbtn" data-m="😌" onclick="selMood(this)">😌</button>
+          <button class="mbtn" data-m="😐" onclick="selMood(this)">😐</button>
+          <button class="mbtn" data-m="😤" onclick="selMood(this)">😤</button>
+          <button class="mbtn" data-m="😩" onclick="selMood(this)">😩</button>
+        </div>
+        <textarea class="fi" id="memoTxt" placeholder="今天發生了什麼..." style="height:62px"></textarea>
+        <button class="btn btn-sage btn-sm" style="width:100%;margin-top:7px" onclick="saveMemo()">記下來</button>
+        <div class="memo-list" id="memoList"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle"><div class="ctitle-l">近期專案</div></div>
+        <div id="recentProjs"></div>
+        <button onclick="tab('projects')" style="margin-top:9px;background:none;border:none;color:var(--sage);font-size:12px;cursor:pointer">查看全部 →</button>
+      </div>
+    </div>
+  </div>
+  <div style="height:14px"></div>
+  <div class="card"><div class="ai-badge">✦ AI 建議</div><div id="aiDash" class="ai-box"></div></div>
+</div>
+
+<div class="page" id="pg-projects">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="font-family:'DM Serif Display',serif;font-size:22px">專案庫</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="pills" id="filtPills">
+        <button class="pill on" data-f="all" onclick="fProj('all',this)">全部</button>
+        <button class="pill social" data-f="social" onclick="fProj('social',this)">社群</button>
+        <button class="pill blog" data-f="blog" onclick="fProj('blog',this)">Blog</button>
+        <button class="pill event" data-f="event" onclick="fProj('event',this)">活動</button>
+        <button class="pill edm" data-f="edm" onclick="fProj('edm',this)">EDM</button>
+        <button class="pill kol" data-f="kol" onclick="fProj('kol',this)">KOL</button>
+      </div>
+      <button class="btn btn-sage btn-sm" onclick="openAddProj()">＋ 新增專案</button>
+    </div>
+  </div>
+  <div class="proj-grid" id="projGrid"></div>
+</div>
+
+<div class="page" id="pg-monthly">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="bico" style="font-size:20px" onclick="chgM(-1)">‹</button>
+      <div style="font-family:'DM Serif Display',serif;font-size:22px" id="mLbl"></div>
+      <button class="bico" style="font-size:20px" onclick="chgM(1)">›</button>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <button class="cfil tw on" data-cf="tw" onclick="togCF(this)">台灣節日</button>
+      <button class="cfil int on" data-cf="int" onclick="togCF(this)">國際節日</button>
+      <button class="cfil mkt on" data-cf="mkt" onclick="togCF(this)">行銷檔期</button>
+      <button class="cfil race on" data-cf="race" onclick="togCF(this)">路跑/單車</button>
+      <button class="cfil on" data-cf="user" onclick="togCF(this)">我的記錄</button>
+    </div>
+  </div>
+  <div class="cal-grid" id="calGrid">
+    <div class="cdh">日</div><div class="cdh we">一</div><div class="cdh">二</div>
+    <div class="cdh">三</div><div class="cdh">四</div><div class="cdh">五</div><div class="cdh we">六</div>
+  </div>
+  <div style="height:16px"></div>
+  <div class="card"><div class="ai-badge">✦ AI 行銷建議</div><div id="aiCal" class="ai-box sky"></div></div>
+</div>
+
+<div class="page" id="pg-personal">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card">
+      <div class="ctitle"><div class="ctitle-l">特休追蹤</div></div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end">
+        <div><div class="fl">年度總天數</div><input type="number" id="lvTotal" class="fi" style="width:72px" min="0" max="40" placeholder="15"></div>
+        <div><div class="fl">已使用</div><input type="number" id="lvUsed" class="fi" style="width:72px" min="0" max="40" placeholder="0"></div>
+        <button class="btn btn-sage btn-sm" onclick="saveLv()">更新</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="lv-bg"><div class="lv-bar" id="lvBar" style="width:0%"></div></div>
+        <div style="font-size:12px;white-space:nowrap"><span style="color:var(--sage);font-weight:500" id="lvUsedD">0</span><span style="color:var(--stone)" id="lvTotD"> / 0 天</span></div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="ai-badge">✦ AI 建議</div>
+      <div id="aiLv" class="ai-box amber"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle"><div class="ctitle-l">今年成果快覽</div><span style="font-size:11px;color:var(--stone)">點擊查看</span></div>
+      <div id="statCards" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div style="font-family:'DM Serif Display',serif;font-size:20px">年度目標</div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:3px" id="qTabs">
+        <button class="qtab on" data-q="all" onclick="swQ(this)">全部</button>
+        <button class="qtab" data-q="Q1" onclick="swQ(this)">Q1</button>
+        <button class="qtab" data-q="Q2" onclick="swQ(this)">Q2</button>
+        <button class="qtab" data-q="Q3" onclick="swQ(this)">Q3</button>
+        <button class="qtab" data-q="Q4" onclick="swQ(this)">Q4</button>
+      </div>
+      <button class="btn btn-sage btn-sm" onclick="openAddGoal()">＋ 新增目標</button>
+    </div>
+  </div>
+  <div id="goalList"></div>
+</div>
+
+<!-- MODALS -->
+<div class="mo" id="moAddProj">
+  <div class="modal">
+    <button class="mclose" onclick="cMo('moAddProj')">×</button>
+    <div class="mtitle" id="aPLbl">新增專案</div><div class="msub">記錄一個工作成果</div>
+    <div class="fl">專案名稱</div><input class="fi" id="pjN" placeholder="例如：Garmin Coach 整合行銷">
+    <div class="fl">類型</div>
+    <div class="pills" id="pjTP">
+      <button class="pill social on" data-t="social" onclick="sPjT(this)">社群</button>
+      <button class="pill blog" data-t="blog" onclick="sPjT(this)">Blog</button>
+      <button class="pill event" data-t="event" onclick="sPjT(this)">活動</button>
+      <button class="pill edm" data-t="edm" onclick="sPjT(this)">EDM</button>
+      <button class="pill kol" data-t="kol" onclick="sPjT(this)">KOL</button>
+    </div>
+    <div class="fl">時間區間</div>
+    <div style="display:flex;gap:8px;align-items:center"><input class="fi" id="pjS" type="date" style="flex:1"><span style="color:var(--stone)">—</span><input class="fi" id="pjE" type="date" style="flex:1"></div>
+    <div class="fl">專案摘要</div><textarea class="fi" id="pjD" placeholder="核心策略方向..."></textarea>
+    <div class="fl">成果指標</div><input class="fi" id="pjR" placeholder="例如：觸及 12 萬、互動率 8.2%">
+    <div class="fl">縮圖</div>
+    <div style="border:2px dashed rgba(45,41,38,.12);border-radius:var(--rs);padding:13px;text-align:center;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='var(--sage)'" onmouseout="this.style.borderColor='rgba(45,41,38,.12)'" onclick="document.getElementById('pjTF').click()">
+      <div style="font-size:12px;color:var(--stone)">點擊上傳縮圖</div>
+      <input type="file" id="pjTF" accept="image/*" style="display:none" onchange="prvT(this)">
+      <img id="pjTP2" style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;margin-top:7px;display:none">
+    </div>
+    <div class="fl">反思筆記</div><textarea class="fi" id="pjNo" placeholder="學到什麼..."></textarea>
+    <input type="hidden" id="pjEID">
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cMo('moAddProj')">取消</button><button class="btn btn-sage" onclick="svProj()">儲存</button></div>
+  </div>
+</div>
+
+<div class="mo" id="moPD">
+  <div class="modal wide">
+    <button class="mclose" onclick="cMo('moPD')">×</button>
+    <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+      <div id="dThm" style="width:90px;height:65px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--warm);display:flex;align-items:center;justify-content:center"></div>
+      <div style="flex:1"><div class="mtitle" id="dN"></div><div style="font-size:12px;color:var(--stone)" id="dMt"></div><span style="background:var(--sage-l);color:var(--sage);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;margin-top:5px" id="dRs"></span></div>
+      <button class="btn btn-ghost btn-sm" onclick="editProj()">編輯</button>
+    </div>
+    <div style="font-size:13px;color:var(--ink-l);line-height:1.7;margin-bottom:14px" id="dDs"></div>
+    <div id="ganttSec" style="display:none;margin-bottom:14px">
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);margin-bottom:6px">專案 Timeline</div>
+      <div class="gantt-wrap"><div class="gantt-inner" id="ganttIn"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)">子項目</div>
+      <button class="btn btn-ghost btn-sm" onclick="openAddSub()">＋ 新增子項目</button>
+    </div>
+    <div id="subList"></div>
+    <div style="margin-top:12px;padding-top:11px;border-top:1px solid rgba(45,41,38,.07)">
+      <div style="font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--stone);margin-bottom:4px">反思筆記</div>
+      <div style="font-size:13px;color:var(--ink-l);line-height:1.7" id="dNt"></div>
+    </div>
+    <div class="mfoot"><button class="btn btn-ghost" style="color:var(--blush);border-color:var(--blush)" onclick="delProj()">刪除</button><button class="btn btn-ghost" onclick="cMo('moPD')">關閉</button></div>
+  </div>
+</div>
+
+<div class="mo" id="moAS">
+  <div class="modal">
+    <button class="mclose" onclick="cMo('moAS')">×</button>
+    <div class="mtitle" id="aSLbl">新增子項目</div><div class="msub">例如：KOL 合作、Blog 文章、消費者貼文</div>
+    <div class="fl">子項目名稱</div><input class="fi" id="sbN" placeholder="例如：KOL 合作 — 跑者直播體驗">
+    <div class="fl">類型</div>
+    <div class="pills" id="sbTP">
+      <button class="pill social on" data-t="social" onclick="sSbT(this)">社群</button>
+      <button class="pill blog" data-t="blog" onclick="sSbT(this)">Blog</button>
+      <button class="pill kol" data-t="kol" onclick="sSbT(this)">KOL</button>
+      <button class="pill event" data-t="event" onclick="sSbT(this)">活動</button>
+      <button class="pill edm" data-t="edm" onclick="sSbT(this)">EDM</button>
+    </div>
+    <div class="fl">執行時間</div>
+    <div style="display:flex;gap:8px;align-items:center"><input class="fi" id="sbS" type="date" style="flex:1"><span style="color:var(--stone)">—</span><input class="fi" id="sbE" type="date" style="flex:1"></div>
+    <div class="fl">說明內容</div><textarea class="fi" id="sbD" placeholder="執行方式、目標..."></textarea>
+    <div class="fl">圖片（可選）</div>
+    <div style="border:2px dashed rgba(45,41,38,.12);border-radius:var(--rs);padding:13px;text-align:center;cursor:pointer" onclick="document.getElementById('sbIF').click()">
+      <div style="font-size:12px;color:var(--stone)">點擊上傳圖片</div>
+      <input type="file" id="sbIF" accept="image/*" style="display:none" onchange="prvSb(this)">
+      <img id="sbIP" style="width:100%;max-height:90px;object-fit:cover;border-radius:6px;margin-top:7px;display:none">
+    </div>
+    <div class="fl">任務清單（Enter 新增）</div>
+    <div style="display:flex;gap:7px;margin-bottom:8px">
+      <input class="fi" id="sbTI" placeholder="例如：撰寫 brief" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addSbT()}">
+      <button class="btn btn-sage btn-sm" onclick="addSbT()">新增</button>
+    </div>
+    <div id="sbTL" style="display:flex;flex-direction:column;gap:5px"></div>
+    <input type="hidden" id="sbEID">
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cMo('moAS')">取消</button><button class="btn btn-sage" onclick="svSub()">儲存</button></div>
+  </div>
+</div>
+
+<div class="mo" id="moCal">
+  <div class="modal">
+    <button class="mclose" onclick="cMo('moCal')">×</button>
+    <div class="mtitle" id="calDLbl"></div><div class="msub">點擊類型後輸入內容</div>
+    <div class="pills" id="calTP" style="margin-bottom:12px">
+      <button class="pill on" data-ct="memo" onclick="sCT(this)">備忘／筆記</button>
+      <button class="pill" data-ct="todo" onclick="sCT(this)">待辦任務</button>
+      <button class="pill" data-ct="plan" onclick="sCT(this)">行銷計劃</button>
+      <button class="pill" data-ct="leave" onclick="sCT(this)">特休假期</button>
+      <button class="pill" data-ct="race-ev" onclick="sCT(this)">賽事參與</button>
+    </div>
+    <input class="fi" id="calET" placeholder="輸入內容...">
+    <div class="mfoot" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="cMo('moCal')">取消</button>
+      <button class="btn btn-sage" onclick="svCalEv()">新增</button>
+    </div>
+    <div id="calDEx" style="margin-top:13px;padding-top:12px;border-top:1px solid rgba(45,41,38,.07)"></div>
+  </div>
+</div>
+
+<div class="mo" id="moAG">
+  <div class="modal">
+    <button class="mclose" onclick="cMo('moAG')">×</button>
+    <div class="mtitle" id="aGLbl">新增年度目標</div>
+    <div class="fl">目標名稱</div><input class="fi" id="glN" placeholder="例如：完成履歷更新">
+    <div class="fl">所屬季度</div>
+    <div class="pills" id="glQP">
+      <button class="pill on" data-q="Q1" onclick="sGQ(this)" style="background:var(--sage-l);border-color:var(--sage);color:var(--sage)">Q1</button>
+      <button class="pill" data-q="Q2" onclick="sGQ(this)">Q2</button>
+      <button class="pill" data-q="Q3" onclick="sGQ(this)">Q3</button>
+      <button class="pill" data-q="Q4" onclick="sGQ(this)">Q4</button>
+    </div>
+    <div class="fl">進度 <span id="glPD" style="color:var(--sage);font-weight:500">0%</span></div>
+    <input type="range" id="glPC" min="0" max="100" step="5" value="0" style="width:100%;accent-color:var(--sage)" oninput="document.getElementById('glPD').textContent=this.value+'%'">
+    <div class="fl">子步驟（Enter 新增）</div>
+    <div style="display:flex;gap:7px;margin-bottom:8px">
+      <input class="fi" id="glSI" placeholder="例如：更新工作經歷段落" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addGS()}">
+      <button class="btn btn-sage btn-sm" onclick="addGS()">新增</button>
+    </div>
+    <div id="glSL" style="display:flex;flex-direction:column;gap:5px"></div>
+    <input type="hidden" id="glEID">
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cMo('moAG')">取消</button><button class="btn btn-sage" onclick="svGoal()">儲存</button></div>
+  </div>
+</div>
+
+<div class="mo" id="moST">
+  <div class="modal wide">
+    <button class="mclose" onclick="cMo('moST')">×</button>
+    <div class="mtitle" id="sTLbl"></div><div class="msub" id="sTSub"></div>
+    <div class="proj-grid" id="sTGrid" style="margin-top:4px"></div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cMo('moST')">關閉</button></div>
+  </div>
+</div>
+
+<script>
+const LS={todos:'wl3_t',projects:'wl3_p',leave:'wl3_l',memos:'wl3_m',goals:'wl3_g',calEvents:'wl3_c'};
+let D={todos:[],projects:[],leave:{total:15,used:0},memos:[],goals:[],calEvents:{}};
+
+// ── Gist 同步設定 ──────────────────────────────
+// 設定完成後會自動跨裝置同步，未設定則使用 localStorage
+let GIST_CONFIG={token:'',gistId:'',encrypted:false};
+try{const g=localStorage.getItem('wl3_gist');if(g)GIST_CONFIG=JSON.parse(g);}catch(e){}
+// encryption key derived from password - never stored
+let _cryptoKey=null;
+let syncStatus='local'; // 'local' | 'syncing' | 'synced' | 'error'
+let saveTimer=null;
+let curM=new Date();curM.setDate(1);
+let cMood='😊',cPjT='social',cSbT='social',cCT='memo',cGQ='Q1';
+let curFil='all',curQV='all',vPjId=null,tmpSbT=[],tmpGS=[],thmD='',sbImgD='',calSD='';
+let cFil={tw:true,int:true,mkt:true,race:true,user:true};
+
+function ls(){for(const[k,sk]of Object.entries(LS)){try{const r=localStorage.getItem(sk);if(r)D[k]=JSON.parse(r);}catch(e){}}}
+function sv(k){
+  try{localStorage.setItem(LS[k],JSON.stringify(D[k]));}catch(e){}
+  scheduleGistSave();
+}
+function scheduleGistSave(){
+  if(!GIST_CONFIG.token||!GIST_CONFIG.gistId)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(pushToGist,2000); // debounce 2s
+  setSyncStatus('syncing');
+}
+function setSyncStatus(s){
+  syncStatus=s;
+  const el=document.getElementById('syncStatus');
+  if(!el)return;
+  const map={local:{txt:'本地',cls:''},syncing:{txt:'同步中…',cls:'syncing'},synced:{txt:'已同步 ✓',cls:'synced'},error:{txt:'同步失敗',cls:'error'}};
+  const m=map[s]||map.local;
+  el.textContent=m.txt;el.className='sync-badge '+m.cls;
+}
+async function pushToGist(){
+  if(!GIST_CONFIG.token||!GIST_CONFIG.gistId)return;
+  try{
+    let content;
+    if(GIST_CONFIG.encrypted&&_cryptoKey){
+      content=await encryptData(JSON.stringify(D),_cryptoKey);
+    } else {
+      content=JSON.stringify(D);
+    }
+    const payload=JSON.stringify({files:{'worklog.json':{content}}});
+    const res=await fetch(`https://api.github.com/gists/${GIST_CONFIG.gistId}`,{
+      method:'PATCH',headers:{'Authorization':'token '+GIST_CONFIG.token,'Content-Type':'application/json'},
+      body:payload
+    });
+    if(res.ok)setSyncStatus('synced'); else setSyncStatus('error');
+  }catch(e){setSyncStatus('error');}
+}
+async function pullFromGist(){
+  if(!GIST_CONFIG.token||!GIST_CONFIG.gistId)return false;
+  try{
+    const res=await fetch(`https://api.github.com/gists/${GIST_CONFIG.gistId}`,{
+      headers:{'Authorization':'token '+GIST_CONFIG.token}
+    });
+    if(!res.ok)return false;
+    const gist=await res.json();
+    const files=Object.values(gist.files);
+    if(!files.length)return false;
+    let rawContent=files[0].content;
+    let remote;
+    if(GIST_CONFIG.encrypted){
+      if(!_cryptoKey)return 'need_password';
+      try{
+        const decrypted=await decryptData(rawContent,_cryptoKey);
+        remote=JSON.parse(decrypted);
+      }catch(e){
+        return 'wrong_password';
+      }
+    } else {
+      try{remote=JSON.parse(rawContent);}catch(e){return false;}
+    }
+    Object.keys(D).forEach(k=>{if(remote[k]!==undefined)D[k]=remote[k];});
+    for(const[k,sk]of Object.entries(LS)){try{localStorage.setItem(sk,JSON.stringify(D[k]));}catch(e){}}
+    return true;
+  }catch(e){return false;}
+}
+
+// ── AES-GCM encryption helpers ──────────────────────────
+async function deriveKey(password,salt){
+  const enc=new TextEncoder();
+  const keyMaterial=await crypto.subtle.importKey('raw',enc.encode(password),{name:'PBKDF2'},false,['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},
+    keyMaterial,{name:'AES-GCM',length:256},false,['encrypt','decrypt']
+  );
+}
+async function encryptData(plaintext,key){
+  const enc=new TextEncoder();
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(plaintext));
+  // pack: iv(12) + ciphertext, encode as base64
+  const combined=new Uint8Array(12+encrypted.byteLength);
+  combined.set(iv,0);combined.set(new Uint8Array(encrypted),12);
+  return btoa(String.fromCharCode(...combined));
+}
+async function decryptData(base64,key){
+  const bytes=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
+  const iv=bytes.slice(0,12);
+  const data=bytes.slice(12);
+  const decrypted=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,data);
+  return new TextDecoder().decode(decrypted);
+}
+async function buildCryptoKey(password){
+  const enc=new TextEncoder();
+  // fixed salt derived from gistId so same pw+gist always gives same key
+  const saltStr=GIST_CONFIG.gistId||'worklog-salt';
+  const salt=enc.encode(saltStr.padEnd(16,'x').slice(0,16));
+  return deriveKey(password,salt);
+}
+function rAll(){rTodos();rProjs();rCal();rLv();rMemos();rGoals();rStatCards();rAI();}
+
+function navDate(){const d=new Date(),dw=['日','一','二','三','四','五','六'];document.getElementById('navDate').textContent=`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} 週${dw[d.getDay()]}`;}
+navDate();setInterval(navDate,60000);
+
+function tab(t){document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));document.getElementById('pg-'+t).classList.add('on');['dashboard','projects','monthly','personal'].forEach((x,i)=>{if(x===t)document.querySelectorAll('.ntab')[i].classList.add('on');});}
+
+const td=()=>new Date().toISOString().split('T')[0];
+const TL={social:'社群',blog:'Blog',event:'活動',edm:'EDM',kol:'KOL'};
+const CL={social:'var(--sage)',blog:'var(--sky)',event:'var(--amber)',edm:'var(--blush)',kol:'var(--purple)'};
+const MD={'😊':'#7a9e87','😌':'#7aaec9','😐':'#c5c0bb','😤':'#d4888a','😩':'#9b87c0'};
+function tico(t){const ic={social:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="3" width="14" height="11" rx="2.5" stroke="currentColor"/><path d="M7 17h6M10 14v3" stroke="currentColor"/></svg>`,blog:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="2.5" stroke="currentColor"/><path d="M6 7h8M6 10h6M6 13h4" stroke="currentColor"/></svg>`,event:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="5" width="14" height="12" rx="2.5" stroke="currentColor"/><path d="M7 3v3M13 3v3M3 10h14" stroke="currentColor"/></svg>`,edm:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="2" y="5" width="16" height="11" rx="2.5" stroke="currentColor"/><path d="M2 7l8 5 8-5" stroke="currentColor"/></svg>`,kol:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><circle cx="10" cy="7" r="3.5" stroke="currentColor"/><path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor"/></svg>`};return`<div class="tico ${t}">${ic[t]||''}</div>`;}
+function ckSvg(){return`<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="white" stroke-width="2"><path d="M1.5 4.5l2 2 4-4"/></svg>`}
+
+function qTodo(){const v=document.getElementById('todoTxt').value.trim();if(!v)return;const d=document.getElementById('todoDateQ').value||td();D.todos.push({id:Date.now(),text:v,priority:document.getElementById('todoPri').value,done:false,date:d});document.getElementById('todoTxt').value='';sv('todos');rTodos();}
+
+function rTodos(){
+  const t=td();const pOrd={high:0,mid:1,low:2};const ti=D.todos.filter(x=>x.date===t).sort((a,b)=>(pOrd[a.priority]||1)-(pOrd[b.priority]||1)),fu=D.todos.filter(x=>x.date>t&&!x.done);
+  document.getElementById('todayCnt').textContent=ti.filter(x=>!x.done).length;
+  const pL={high:'緊急',mid:'一般',low:'輕鬆'};
+  document.getElementById('todoList').innerHTML=ti.length?ti.map(x=>`<div class="ti"><div class="tck ${x.done?'on':''}" onclick="togT(${x.id})">${x.done?ckSvg():''}</div><span class="ttxt ${x.done?'done':''}">${x.text}</span><span class="ptag ${x.priority}">${pL[x.priority]}</span><button class="bico" style="opacity:0;font-size:11px" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0" onclick="editTodo(${x.id})" style="font-size:11px;opacity:0;transition:opacity .15s" class="bico edit-todo-btn">✎</button><button class="tdel" onclick="delT(${x.id})">×</button></div>`).join(''):'<div style="font-size:12px;color:var(--stone);padding:6px 0">今天還沒有待辦</div>';
+  const byDay={};fu.forEach(x=>{if(!byDay[x.date])byDay[x.date]=[];byDay[x.date].push(x);});
+  const days=Object.keys(byDay).sort().slice(0,5);
+  document.getElementById('weekPrev').innerHTML=days.length?days.map(d=>{const dt=new Date(d+'T12:00:00'),dw=['日','一','二','三','四','五','六'];return`<div class="wrow"><div class="wday">${dt.getMonth()+1}/${dt.getDate()} 週${dw[dt.getDay()]}</div><div class="wchips">${byDay[d].map(x=>`<span class="wchip ${x.priority||'mid'}">${x.text}</span>`).join('')}</div></div>`;}).join(''):'<div style="font-size:12px;color:var(--stone)">本週無其他待辦</div>';
+}
+function togT(id){const x=D.todos.find(t=>t.id===id);if(x){x.done=!x.done;sv('todos');rTodos();}}
+function delT(id){D.todos=D.todos.filter(x=>x.id!==id);sv('todos');rTodos();}
+
+function selMood(b){cMood=b.dataset.m;document.querySelectorAll('.mbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+function saveMemo(){const txt=document.getElementById('memoTxt').value.trim();if(!txt)return;D.memos.unshift({id:Date.now(),text:txt,mood:cMood,date:td(),dateLabel:new Date().toLocaleDateString('zh-TW')});document.getElementById('memoTxt').value='';sv('memos');rMemos();rCal();}
+function rMemos(){document.getElementById('memoList').innerHTML=D.memos.length?D.memos.slice(0,4).map(m=>`<div class="mentry"><div class="mdate">${m.dateLabel}</div><span style="margin-right:4px">${m.mood}</span>${m.text}</div>`).join(''):'<div style="font-size:12px;color:var(--stone);padding:4px 0">還沒有記錄</div>';}
+
+function rProjs(){
+  let list=D.projects;if(curFil!=='all')list=list.filter(p=>p.type===curFil);
+  document.getElementById('projGrid').innerHTML=list.map(p=>`<div class="pcard" onclick="openD(${p.id})"><div class="pthumb ${p.type}">${p.thumb?`<img src="${p.thumb}">`:''}${tico(p.type)}<span class="ptype-badge">${TL[p.type]}</span></div><div class="pbody"><div class="pname">${p.name}</div><div class="pmeta">${p.start||''}${p.end?' → '+p.end:''}</div>${p.result?`<div class="presult">✦ ${p.result}</div>`:''}${p.subs?.length?`<div class="psubc">${p.subs.length} 個子項目</div>`:''}</div></div>`).join('')+`<div class="proj-add" onclick="openAddProj()"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="11" cy="11" r="8.5"/><path d="M11 7.5v7M7.5 11h7"/></svg>新增專案</div>`;
+  const rc=D.projects.slice(-3).reverse();
+  document.getElementById('recentProjs').innerHTML=rc.length?rc.map(p=>`<div style="display:flex;align-items:center;gap:9px;padding:6px 7px;border-radius:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--warm)'" onmouseout="this.style.background=''" onclick="tab('projects');setTimeout(()=>openD(${p.id}),80)">${tico(p.type)}<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div><div style="font-size:11px;color:var(--stone)">${TL[p.type]} · ${p.start||''}</div></div></div>`).join(''):'<div style="font-size:12px;color:var(--stone)">尚無專案</div>';
+}
+function fProj(f,btn){curFil=f;document.querySelectorAll('#filtPills .pill').forEach(b=>{b.classList.remove('on','social','blog','event','edm','kol');});btn.classList.add('on',f==='all'?'':f);rProjs();}
+
+function openAddProj(id){
+  const p=id?D.projects.find(x=>x.id===id):null;
+  document.getElementById('aPLbl').textContent=p?'編輯專案':'新增專案';
+  document.getElementById('pjN').value=p?p.name:'';document.getElementById('pjS').value=p?p.start:'';document.getElementById('pjE').value=p?p.end:'';
+  document.getElementById('pjD').value=p?p.desc:'';document.getElementById('pjR').value=p?p.result:'';document.getElementById('pjNo').value=p?p.note:'';
+  document.getElementById('pjEID').value=p?p.id:'';thmD=p?.thumb||'';
+  const pr=document.getElementById('pjTP2');pr.style.display=thmD?'block':'none';if(thmD)pr.src=thmD;
+  const ct=p?p.type:'social';cPjT=ct;
+  document.querySelectorAll('#pjTP .pill').forEach(b=>b.classList.remove('on','social','blog','event','edm','kol'));
+  document.querySelector(`#pjTP [data-t="${ct}"]`).classList.add('on',ct);
+  openMo('moAddProj');
+}
+function sPjT(b){cPjT=b.dataset.t;document.querySelectorAll('#pjTP .pill').forEach(x=>x.classList.remove('on','social','blog','event','edm','kol'));b.classList.add('on',b.dataset.t);}
+function prvT(inp){if(!inp.files[0])return;const r=new FileReader();r.onload=e=>{thmD=e.target.result;const i=document.getElementById('pjTP2');i.src=thmD;i.style.display='block';};r.readAsDataURL(inp.files[0]);}
+function svProj(){
+  const name=document.getElementById('pjN').value.trim();if(!name)return;
+  const eid=document.getElementById('pjEID').value;
+  const data={name,type:cPjT,start:document.getElementById('pjS').value,end:document.getElementById('pjE').value,desc:document.getElementById('pjD').value,result:document.getElementById('pjR').value,note:document.getElementById('pjNo').value,thumb:thmD};
+  if(eid){const p=D.projects.find(x=>x.id==eid);if(p)Object.assign(p,data);}
+  else D.projects.push({id:Date.now(),...data,subs:[]});
+  sv('projects');rProjs();rCal();rStatCards();rAI();cMo('moAddProj');
+}
+function openD(id){
+  vPjId=id;const p=D.projects.find(x=>x.id===id);if(!p)return;
+  document.getElementById('dN').textContent=p.name;document.getElementById('dMt').textContent=`${TL[p.type]} · ${p.start||''}${p.end?' → '+p.end:''}`;
+  document.getElementById('dDs').textContent=p.desc||'（尚未填寫摘要）';document.getElementById('dRs').textContent=p.result||'—';document.getElementById('dNt').textContent=p.note||'（尚未填寫反思）';
+  const tw=document.getElementById('dThm');tw.innerHTML=p.thumb?`<img src="${p.thumb}" style="width:100%;height:100%;object-fit:cover">`:`<div class="tico ${p.type}" style="width:56px;height:56px;border-radius:10px">${({social:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="3" width="14" height="11" rx="2.5" stroke="currentColor"/><path d="M7 17h6M10 14v3" stroke="currentColor"/></svg>`,blog:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="2.5" stroke="currentColor"/><path d="M6 7h8M6 10h6M6 13h4" stroke="currentColor"/></svg>`,event:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="5" width="14" height="12" rx="2.5" stroke="currentColor"/><path d="M7 3v3M13 3v3M3 10h14" stroke="currentColor"/></svg>`,edm:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="2" y="5" width="16" height="11" rx="2.5" stroke="currentColor"/><path d="M2 7l8 5 8-5" stroke="currentColor"/></svg>`,kol:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><circle cx="10" cy="7" r="3.5" stroke="currentColor"/><path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor"/></svg>`})[p.type]||''}</div>`;
+  rSubList(p);rGantt(p);openMo('moPD');
+}
+function editProj(){cMo('moPD');openAddProj(vPjId);}
+function delProj(){if(!confirm('確定刪除？'))return;D.projects=D.projects.filter(x=>x.id!==vPjId);sv('projects');rProjs();rStatCards();cMo('moPD');}
+
+function openAddSub(sid){
+  const p=D.projects.find(x=>x.id===vPjId);if(!p)return;
+  const s=sid?p.subs?.find(x=>x.id===sid):null;
+  document.getElementById('aSLbl').textContent=s?'編輯子項目':'新增子項目';
+  document.getElementById('sbN').value=s?s.name:'';document.getElementById('sbD').value=s?s.desc:'';
+  document.getElementById('sbS').value=s?s.start||'':'';document.getElementById('sbE').value=s?s.end||'':'';
+  document.getElementById('sbEID').value=s?s.id:'';
+  sbImgD=s?.img||'';tmpSbT=s?JSON.parse(JSON.stringify(s.tasks||[])):[];
+  const sp=document.getElementById('sbIP');sp.style.display=sbImgD?'block':'none';if(sbImgD)sp.src=sbImgD;
+  const ct=s?s.type:'social';cSbT=ct;
+  document.querySelectorAll('#sbTP .pill').forEach(b=>b.classList.remove('on','social','blog','event','edm','kol'));
+  document.querySelector(`#sbTP [data-t="${ct}"]`).classList.add('on',ct);
+  document.getElementById('sbTI').value='';rTmpT();openMo('moAS');
+}
+function sSbT(b){cSbT=b.dataset.t;document.querySelectorAll('#sbTP .pill').forEach(x=>x.classList.remove('on','social','blog','event','edm','kol'));b.classList.add('on',b.dataset.t);}
+function prvSb(inp){if(!inp.files[0])return;const r=new FileReader();r.onload=e=>{sbImgD=e.target.result;const i=document.getElementById('sbIP');i.src=sbImgD;i.style.display='block';};r.readAsDataURL(inp.files[0]);}
+function addSbT(){const v=document.getElementById('sbTI').value.trim();if(!v)return;tmpSbT.push({id:Date.now()+Math.random(),text:v,done:false});document.getElementById('sbTI').value='';rTmpT();}
+function rTmpT(){document.getElementById('sbTL').innerHTML=tmpSbT.map((t,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 9px;background:var(--warm);border-radius:6px"><div class="sck ${t.done?'on':''}" onclick="togTmpT(${i})">${t.done?ckSvg():''}</div><span style="flex:1;font-size:12px;${t.done?'text-decoration:line-through;opacity:.4':''}">${t.text}</span><button class="bico" onclick="dlTmpT(${i})">×</button></div>`).join('');}
+function togTmpT(i){tmpSbT[i].done=!tmpSbT[i].done;rTmpT();}function dlTmpT(i){tmpSbT.splice(i,1);rTmpT();}
+function svSub(){
+  const name=document.getElementById('sbN').value.trim();if(!name)return;
+  const p=D.projects.find(x=>x.id===vPjId);if(!p)return;if(!p.subs)p.subs=[];
+  const eid=document.getElementById('sbEID').value;
+  const data={name,type:cSbT,start:document.getElementById('sbS').value,end:document.getElementById('sbE').value,desc:document.getElementById('sbD').value,img:sbImgD,tasks:tmpSbT};
+  if(eid){const s=p.subs.find(x=>x.id==eid);if(s)Object.assign(s,data);}else p.subs.push({id:Date.now(),...data});
+  sv('projects');rSubList(p);rProjs();rGantt(p);cMo('moAS');
+}
+function rSubList(p){
+  const el=document.getElementById('subList');
+  if(!p.subs?.length){el.innerHTML='<div style="font-size:12px;color:var(--stone);padding:4px 0">尚無子項目</div>';return;}
+  el.innerHTML=p.subs.map(s=>`<div class="sub-item"><div class="sub-hd" onclick="togSb(this)"><span class="badge ${s.type}">${TL[s.type]}</span><span class="sub-hd-title">${s.name}</span>${s.start?`<span style="font-size:10px;color:var(--stone)">${s.start}${s.end?' → '+s.end:''}</span>`:''}<span style="font-size:10px;color:var(--stone)">${s.tasks?.length?s.tasks.filter(t=>t.done).length+'/'+s.tasks.length:''}</span><button class="bico" style="font-size:11px" onclick="event.stopPropagation();openAddSub(${s.id})">編輯</button><button class="bico" style="font-size:11px;color:var(--blush)" onclick="event.stopPropagation();dlSub(${p.id},${s.id})">×</button><span style="font-size:11px;color:var(--stone)">▾</span></div><div class="sub-bd">${s.desc?`<div style="font-size:13px;color:var(--ink-l);line-height:1.6;margin-bottom:7px">${s.desc}</div>`:''}${s.img?`<img class="sub-img" src="${s.img}">`:''}${s.tasks?.length?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">`+s.tasks.map(t=>`<div class="stask"><div class="sck ${t.done?'on':''}" onclick="togST(${p.id},${s.id},${t.id})">${t.done?ckSvg():''}</div><span style="${t.done?'text-decoration:line-through;opacity:.4':''}">${t.text}</span></div>`).join('')+`</div>`:''}</div></div>`).join('');
+}
+function togSb(h){h.nextElementSibling.classList.toggle('on');}
+function togST(pid,sid,tid){const p=D.projects.find(x=>x.id===pid);if(!p)return;const s=p.subs.find(x=>x.id===sid);if(!s)return;const t=s.tasks.find(x=>x.id===tid);if(t){t.done=!t.done;sv('projects');rSubList(p);rProjs();}}
+function dlSub(pid,sid){const p=D.projects.find(x=>x.id===pid);if(!p||!confirm('確定刪除？'))return;p.subs=p.subs.filter(x=>x.id!==sid);sv('projects');rSubList(p);rProjs();}
+
+function rGantt(p){
+  const sec=document.getElementById('ganttSec');
+  const subs=p.subs?.filter(s=>s.start&&s.end)||[];
+  if(!p.start||!subs.length){sec.style.display='none';return;}
+  sec.style.display='block';
+  const pS=new Date(p.start),pE=p.end?new Date(p.end):new Date();
+  const pD=Math.max(1,(pE-pS)/86400000);
+  const months=[];let c=new Date(pS);c.setDate(1);
+  while(c<=pE){months.push(`${c.getMonth()+1}月`);c.setMonth(c.getMonth()+1);}
+  const rows=subs.map(s=>{const ss=new Date(s.start),se=new Date(s.end);const l=Math.max(0,(ss-pS)/86400000/pD*100),w=Math.max(1.5,(se-ss)/86400000/pD*100);return`<div class="g-row"><div class="g-label" title="${s.name}">${s.name}</div><div class="g-track"><div class="g-bar" style="left:${l}%;width:${w}%;background:${CL[s.type]||CL.social}">${s.name}</div></div></div>`;}).join('');
+  document.getElementById('ganttIn').innerHTML=`<div class="g-hdr">${months.map(m=>`<div class="g-mth">${m}</div>`).join('')}</div>${rows}`;
+}
+
+const HL={'01-01':{n:'元旦',t:'tw'},'01-29':{n:'除夕',t:'tw'},'01-30':{n:'春節',t:'tw'},'02-14':{n:'情人節',t:'int'},'02-28':{n:'和平紀念日',t:'tw'},'03-08':{n:'婦女節',t:'int'},'03-29':{n:'青年節',t:'tw'},'04-04':{n:'兒童節',t:'tw'},'04-05':{n:'清明',t:'tw'},'04-22':{n:'地球日',t:'int'},'05-01':{n:'勞動節',t:'tw'},'05-11':{n:'母親節',t:'tw'},'06-18':{n:'父親節檔期',t:'mkt'},'06-19':{n:'端午節',t:'tw'},'07-01':{n:'夏季運動旺季',t:'mkt'},'08-28':{n:'七夕',t:'tw'},'09-01':{n:'馬拉松備賽期',t:'mkt'},'09-28':{n:'教師節',t:'tw'},'10-10':{n:'國慶日',t:'tw'},'10-31':{n:'Halloween',t:'int'},'11-11':{n:'雙 11',t:'mkt'},'12-25':{n:'聖誕節',t:'int'},'12-31':{n:'跨年',t:'tw'}};
+const RC={'03-02':{n:'台北國道馬拉松'},'03-16':{n:'萬金石馬拉松'},'04-13':{n:'太魯閣馬拉松'},'04-27':{n:'墾丁單車嘉年華'},'05-18':{n:'石門水庫馬拉松'},'06-01':{n:'台灣自行車節'},'09-14':{n:'中秋盃路跑'},'10-19':{n:'富邦台北馬拉松'},'11-09':{n:'台北馬拉松（初賽）'},'11-30':{n:'台東鐵人三項'},'12-07':{n:'台北馬拉松'},'12-14':{n:'高雄馬拉松'}};
+
+function rCal(){
+  const y=curM.getFullYear(),m=curM.getMonth();
+  document.getElementById('mLbl').textContent=`${y} 年 ${m+1} 月`;
+  const g=document.getElementById('calGrid');
+  g.querySelectorAll('.cc,.cc.other').forEach(c=>c.remove());
+  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
+  const tnow=new Date();
+  for(let i=0;i<first;i++){const pr=new Date(y,m,-(first-i-1));mkC(g,pr.getDate(),'',true,(pr.getDay()===0||pr.getDay()===6));}
+  for(let d=1;d<=days;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isT=d===tnow.getDate()&&m===tnow.getMonth()&&y===tnow.getFullYear();
+    const dow=new Date(ds).getDay();mkC(g,d,ds,false,(dow===0||dow===6),isT);
+  }
+  const mk=String(m+1).padStart(2,'0');
+  const mh=Object.entries({...HL,...RC}).filter(([k])=>k.startsWith(mk+'-')).map(([,v])=>v);
+  document.getElementById('aiCal').textContent=mh.length?`本月有 ${mh.length} 個行銷節點：\n\n`+mh.map(h=>`· ${h.n}`).join('\n'):'這個月節日較少，適合規劃長青型內容，例如產品知識、訓練指引或使用者故事。';
+}
+function mkC(g,num,ds,other,isWE,isT){
+  const c=document.createElement('div');
+  c.className='cc'+(other?' other':'')+(isT?' today':'')+(isWE&&!other?' we-cell':'');
+  const evs=D.calEvents[ds]||[];
+  const hasLeave=evs.some(e=>e.type==='leave');
+  if(hasLeave&&!other)c.classList.add('leave-day');
+  let html=`<div class="cnum">${num}</div>`;
+  if(ds){
+    const mmdd=ds.slice(5);
+    if(cFil.tw&&HL[mmdd]?.t==='tw')html+=`<div class="hblk tw">${HL[mmdd].n}</div>`;
+    if(cFil.int&&HL[mmdd]?.t==='int')html+=`<div class="hblk int">${HL[mmdd].n}</div>`;
+    if(cFil.mkt&&HL[mmdd]?.t==='mkt')html+=`<div class="hblk mkt">${HL[mmdd].n}</div>`;
+    if(cFil.race&&RC[mmdd])html+=`<div class="hblk race">${RC[mmdd].n}</div>`;
+    if(cFil.user){
+      evs.forEach(e=>html+=`<div class="cev ${e.type}">${e.text}</div>`);
+      const mo=D.memos.find(x=>x.date===ds);
+      if(mo)html+=`<div class="mood-dot" style="background:${MD[mo.mood]||'var(--sage-m)'}"></div>`;
+      D.projects.filter(p=>p.start===ds||p.end===ds).forEach(p=>html+=`<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${CL[p.type]};margin:1px"></span>`);
+    }
+    c.onclick=()=>openCalDay(ds);
+  }
+  c.innerHTML=html;g.appendChild(c);
+}
+function chgM(d){curM.setMonth(curM.getMonth()+d);rCal();}
+function togCF(btn){const k=btn.dataset.cf;cFil[k]=!cFil[k];btn.classList.toggle('on',cFil[k]);rCal();}
+
+function openCalDay(ds){
+  calSD=ds;const dt=new Date(ds+'T12:00:00'),dw=['日','一','二','三','四','五','六'];
+  document.getElementById('calDLbl').textContent=`${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日 週${dw[dt.getDay()]}`;
+  document.getElementById('calET').value='';cCT='memo';
+  document.querySelectorAll('#calTP .pill').forEach(b=>b.classList.remove('on'));document.querySelector('#calTP [data-ct="memo"]').classList.add('on');
+  const ex=D.calEvents[ds]||[];
+  const exEl=document.getElementById('calDEx');
+  exEl.innerHTML=ex.length?'<div style="font-size:11px;color:var(--stone);margin-bottom:6px">已有紀錄</div>'+ex.map((e,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--warm);border-radius:6px;margin-bottom:4px"><span class="badge" style="background:var(--sage-l);color:var(--sage);flex-shrink:0">${{memo:'備忘',todo:'待辦',plan:'行銷',leave:'特休','race-ev':'賽事'}[e.type]||e.type}</span><span style="flex:1;font-size:12px">${e.text}</span><button class="bico" onclick="dlCalEv('${ds}',${i})">×</button></div>`).join(''):'';
+  openMo('moCal');
+}
+function sCT(b){cCT=b.dataset.ct;document.querySelectorAll('#calTP .pill').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+function svCalEv(){const txt=document.getElementById('calET').value.trim();if(!txt)return;if(!D.calEvents[calSD])D.calEvents[calSD]=[];D.calEvents[calSD].push({type:cCT,text:txt});sv('calEvents');if(cCT==='todo'){D.todos.push({id:Date.now(),text:txt,priority:'mid',done:false,date:calSD});sv('todos');rTodos();}rCal();openCalDay(calSD);}
+function dlCalEv(ds,i){D.calEvents[ds].splice(i,1);if(!D.calEvents[ds].length)delete D.calEvents[ds];sv('calEvents');rCal();openCalDay(ds);}
+
+function saveLv(){D.leave={total:parseInt(document.getElementById('lvTotal').value)||15,used:parseInt(document.getElementById('lvUsed').value)||0};sv('leave');rLv();rAI();}
+function rLv(){const{total,used}=D.leave;const pct=total>0?Math.min(100,Math.round(used/total*100)):0;document.getElementById('lvBar').style.width=pct+'%';document.getElementById('lvUsedD').textContent=used;document.getElementById('lvTotD').textContent=` / ${total} 天`;document.getElementById('lvTotal').value=total;document.getElementById('lvUsed').value=used;}
+
+function swQ(b){curQV=b.dataset.q;document.querySelectorAll('.qtab').forEach(x=>x.classList.remove('on'));b.classList.add('on');rGoals();}
+function openAddGoal(id){
+  const g=id?D.goals.find(x=>x.id===id):null;
+  document.getElementById('aGLbl').textContent=g?'編輯目標':'新增年度目標';
+  document.getElementById('glN').value=g?g.name:'';document.getElementById('glPC').value=g?g.pct:0;document.getElementById('glPD').textContent=(g?g.pct:0)+'%';
+  document.getElementById('glEID').value=g?g.id:'';tmpGS=g?JSON.parse(JSON.stringify(g.steps||[])):[];
+  cGQ=g?g.quarter:'Q1';
+  document.querySelectorAll('#glQP .pill').forEach(b=>{b.classList.remove('on');b.style.cssText='';});
+  const qb=document.querySelector(`#glQP [data-q="${cGQ}"]`);qb.classList.add('on');qb.style.background='var(--sage-l)';qb.style.borderColor='var(--sage)';qb.style.color='var(--sage)';
+  document.getElementById('glSI').value='';rTmpGS();openMo('moAG');
+}
+function sGQ(b){cGQ=b.dataset.q;document.querySelectorAll('#glQP .pill').forEach(x=>{x.classList.remove('on');x.style.cssText='';});b.classList.add('on');b.style.background='var(--sage-l)';b.style.borderColor='var(--sage)';b.style.color='var(--sage)';}
+function addGS(){const v=document.getElementById('glSI').value.trim();if(!v)return;tmpGS.push({id:Date.now()+Math.random(),text:v,done:false});document.getElementById('glSI').value='';rTmpGS();}
+function rTmpGS(){document.getElementById('glSL').innerHTML=tmpGS.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 9px;background:var(--warm);border-radius:6px"><div class="stck ${s.done?'on':''}" onclick="togTGS(${i})">${s.done?ckSvg():''}</div><span style="flex:1;font-size:12px;${s.done?'text-decoration:line-through;opacity:.4':''}">${s.text}</span><button class="bico" onclick="dlTGS(${i})">×</button></div>`).join('');}
+function togTGS(i){tmpGS[i].done=!tmpGS[i].done;rTmpGS();}function dlTGS(i){tmpGS.splice(i,1);rTmpGS();}
+function svGoal(){const name=document.getElementById('glN').value.trim();if(!name)return;const pct=parseInt(document.getElementById('glPC').value)||0;const eid=document.getElementById('glEID').value;const data={name,quarter:cGQ,pct,steps:tmpGS};if(eid){const g=D.goals.find(x=>x.id==eid);if(g)Object.assign(g,data);}else D.goals.push({id:Date.now(),...data});sv('goals');rGoals();cMo('moAG');}
+function rGoals(){
+  const list=curQV==='all'?D.goals:D.goals.filter(g=>g.quarter===curQV);
+  document.getElementById('goalList').innerHTML=list.length?list.map(g=>`<div class="gc"><div class="gc-hd"><span style="font-size:10px;background:var(--sage-l);color:var(--sage);padding:2px 7px;border-radius:10px;flex-shrink:0">${g.quarter}</span><div class="gc-title">${g.name}</div><div class="gc-pct">${g.pct}%</div><input type="range" min="0" max="100" step="5" value="${g.pct}" style="width:76px;accent-color:var(--sage);flex-shrink:0" oninput="upGP(${g.id},this.value)"><button class="bico" onclick="openAddGoal(${g.id})" title="編輯" style="font-size:12px">✎</button><button class="bico" style="color:var(--blush)" onclick="dlGoal(${g.id})">×</button></div><div class="gc-bg"><div class="gc-bar" style="width:${g.pct}%"></div></div>${g.steps?.length?`<div style="display:flex;flex-direction:column;gap:4px;padding-top:8px;border-top:1px solid rgba(45,41,38,.06)">`+g.steps.map(s=>`<div class="step-row"><div class="stck ${s.done?'on':''}" onclick="togGS(${g.id},${s.id})">${s.done?ckSvg():''}</div><span style="${s.done?'text-decoration:line-through;opacity:.45':''}">${s.text}</span></div>`).join('')+`</div>`:''}<div class="gc-ai">${gAI(g)}</div></div>`).join(''):'<div class="card" style="text-align:center;color:var(--stone);font-size:13px;padding:22px">尚無目標，點擊右上角新增</div>';
+}
+function upGP(id,v){const g=D.goals.find(x=>x.id===id);if(!g)return;g.pct=parseInt(v);sv('goals');rGoals();}
+function togGS(gid,sid){const g=D.goals.find(x=>x.id===gid);if(!g)return;const s=g.steps.find(x=>x.id===sid);if(!s)return;s.done=!s.done;if(g.steps.length)g.pct=Math.round(g.steps.filter(x=>x.done).length/g.steps.length*100);sv('goals');rGoals();}
+function dlGoal(id){if(!confirm('確定刪除？'))return;D.goals=D.goals.filter(x=>x.id!==id);sv('goals');rGoals();}
+function gAI(g){const kw={履歷:['建議先整理每個專案的數據成果，以「Before → After」格式呈現更有說服力。','幾乎完成了！最後確認作品集連結可開啟，並請信任的人幫你看過一遍。'],加薪:['建議整理一份一頁式成果摘要，以數字說話，在績效評核前兩週提出。','選在一個亮眼專案剛完成後提出，成功率更高。'],鐵人:['先穩定游泳練習頻率，每週 3 次，專注換氣節奏。','核心動作與騎乘姿勢調整到位，才能在 run 段保留體力。'],馬拉松:['建議先做好 Z2 有氧基礎，不要急著做速度訓練。','賽前兩週開始減量，充足睡眠比多練一次更重要。']};for(const[k,arr]of Object.entries(kw)){if(g.name.includes(k))return arr[g.pct<50?0:1];}if(g.pct===0)return'剛設定好！建議把第一個子步驟排進本週待辦，讓目標開始移動。';if(g.pct<40)return'已起步，建議每週固定時間回來更新進度。';if(g.pct<75)return'進度不錯！檢視一下尚未完成的步驟，有沒有可以拆解得更細的地方。';if(g.pct<100)return'最後一哩路！把剩餘步驟排進本週行事曆，這週完成它。';return'目標達成！把這個成果記錄到專案庫，作為 portfolio 的一部分。';}
+
+function rStatCards(){
+  const types=['social','blog','event','edm','kol'];
+  document.getElementById('statCards').innerHTML=types.map(t=>{const cnt=D.projects.filter(p=>p.type===t).length;if(!cnt)return'';return`<div class="stc" onclick="openST('${t}')"><div class="tico ${t}">${({social:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="3" width="14" height="11" rx="2.5" stroke="currentColor"/><path d="M7 17h6M10 14v3" stroke="currentColor"/></svg>`,blog:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="2.5" stroke="currentColor"/><path d="M6 7h8M6 10h6M6 13h4" stroke="currentColor"/></svg>`,event:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="5" width="14" height="12" rx="2.5" stroke="currentColor"/><path d="M7 3v3M13 3v3M3 10h14" stroke="currentColor"/></svg>`,edm:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="2" y="5" width="16" height="11" rx="2.5" stroke="currentColor"/><path d="M2 7l8 5 8-5" stroke="currentColor"/></svg>`,kol:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><circle cx="10" cy="7" r="3.5" stroke="currentColor"/><path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor"/></svg>`})[t]||''}</div><div style="flex:1"><div style="font-size:13px;font-weight:500">${TL[t]}</div><div style="background:var(--warm);border-radius:10px;height:4px;overflow:hidden;margin-top:5px"><div style="width:${Math.min(100,cnt*20)}%;height:100%;background:${CL[t]};border-radius:10px"></div></div></div><div style="font-size:15px;font-family:'DM Serif Display',serif;color:${CL[t]}">${cnt}</div></div>`;}).join('')||'<div style="font-size:12px;color:var(--stone)">尚無專案數據</div>';
+}
+function openST(t){
+  const list=D.projects.filter(p=>p.type===t);
+  document.getElementById('sTLbl').textContent=TL[t]+' 專案';document.getElementById('sTSub').textContent=`共 ${list.length} 個`;
+  document.getElementById('sTGrid').innerHTML=list.map(p=>`<div class="pcard" onclick="cMo('moST');openD(${p.id})"><div class="pthumb ${p.type}">${p.thumb?`<img src="${p.thumb}">`:''}${tico(p.type)}<span class="ptype-badge">${TL[p.type]}</span></div><div class="pbody"><div class="pname">${p.name}</div><div class="pmeta">${p.start||''}${p.end?' → '+p.end:''}</div>${p.result?`<div class="presult">✦ ${p.result}</div>`:''}</div></div>`).join('');
+  openMo('moST');
+}
+
+function rAI(){
+  const proj=D.projects.length,{total,used}=D.leave,rem=total-used,mon=new Date().getMonth()+1;
+  let tip=proj===0?'建議先建立第一個專案紀錄，讓工作成果開始被累積與追蹤。':proj<3?`目前有 ${proj} 個專案。社群工作成果容易淹沒在日常，建議每個 campaign 結束後立刻補充數字。`:`已累積 ${proj} 個專案。建議為每個專案補上反思筆記，面試或報告時最有說服力。`;
+  const seas=mon>=3&&mon<=5?'🌸 春季戶外旺季，適合規劃運動主題內容。':mon>=6&&mon<=8?'☀️ 夏季運動高峰，游泳、鐵人、自行車話題效果佳。':mon>=9&&mon<=11?'🍂 秋季馬拉松旺季，跑錶推薦與訓練內容流量最高。':'❄️ 年末是回顧成果、規劃明年 Q1 策略的好時機。';
+  const d=document.getElementById('aiDash');if(d)d.textContent=tip+'\n\n'+seas;
+  let lv=rem<=0?'特休已用完，注意工作節奏。':rem>=7?`特休剩 ${rem} 天，累積偏多，建議每 6–8 週安排 1–2 天休假，避免長期疲勞影響創意。`:`特休剩 ${rem} 天，步調不錯。`;
+  if(mon>=10&&rem>5)lv=`年底前還有 ${rem} 天特休，建議在 11–12 月安排 2–3 天連假充電。`;
+  const le=document.getElementById('aiLv');if(le)le.textContent=lv;
+}
+
+
+let etPri='mid';
+function editTodo(id){
+  const x=D.todos.find(t=>t.id===id);if(!x)return;
+  document.getElementById('etTxt').value=x.text;
+  document.getElementById('etDate').value=x.date;
+  document.getElementById('etId').value=x.id;
+  etPri=x.priority;
+  document.querySelectorAll('#etPriPills .pill').forEach(b=>b.classList.remove('on'));
+  document.querySelector(`#etPriPills [data-p="${x.priority}"]`).classList.add('on',x.priority);
+  openMo('moEditTodo');
+}
+function sETP(b){etPri=b.dataset.p;document.querySelectorAll('#etPriPills .pill').forEach(x=>x.classList.remove('on','high','mid','low'));b.classList.add('on',b.dataset.p);}
+function svEditTodo(){
+  const id=parseInt(document.getElementById('etId').value);
+  const x=D.todos.find(t=>t.id===id);if(!x)return;
+  x.text=document.getElementById('etTxt').value.trim()||x.text;
+  x.date=document.getElementById('etDate').value||x.date;
+  x.priority=etPri;
+  sv('todos');rTodos();cMo('moEditTodo');
+}
+async function saveGistConfig(){
+  const t=document.getElementById('gistToken').value.trim();
+  const g=document.getElementById('gistId').value.trim();
+  const pw=document.getElementById('gistPw').value;
+  const useEnc=document.getElementById('gistEncToggle').checked;
+  if(!t||!g){document.getElementById('gistTestResult').textContent='⚠ 請填寫 Token 和 Gist ID';return;}
+  if(useEnc&&!pw){document.getElementById('gistTestResult').textContent='⚠ 啟用加密請設定密碼';return;}
+  GIST_CONFIG={token:t,gistId:g,encrypted:useEnc};
+  if(useEnc){_cryptoKey=await buildCryptoKey(pw);}else{_cryptoKey=null;}
+  try{localStorage.setItem('wl3_gist',JSON.stringify(GIST_CONFIG));}catch(e){}
+  document.getElementById('gistTestResult').textContent='設定已儲存，正在測試連線…';
+  testGistConnection();
+}
+async function testGistConnection(){
+  const t=document.getElementById('gistToken').value.trim()||GIST_CONFIG.token;
+  const g=document.getElementById('gistId').value.trim()||GIST_CONFIG.gistId;
+  if(!t||!g){document.getElementById('gistTestResult').textContent='⚠ 請先填寫設定';return;}
+  const el=document.getElementById('gistTestResult');
+  el.textContent='連線測試中…';el.style.color='var(--stone)';
+  try{
+    const res=await fetch(`https://api.github.com/gists/${g}`,{headers:{'Authorization':'token '+t}});
+    if(res.ok){
+      el.style.color='var(--sage)';
+      el.textContent='✓ 連線成功！'+(GIST_CONFIG.encrypted?'加密同步已啟用 🔒':'同步已啟用');
+    }
+    else{el.style.color='var(--blush)';el.textContent='✗ 連線失敗（'+res.status+'），請確認 Token 和 Gist ID';}
+  }catch(e){el.style.color='var(--blush)';el.textContent='✗ 網路錯誤：'+e.message;}
+}
+function clearGistConfig(){
+  if(!confirm('確定要清除同步設定？（資料不會被刪除）'))return;
+  GIST_CONFIG={token:'',gistId:''};
+  try{localStorage.removeItem('wl3_gist');}catch(e){}
+  document.getElementById('gistToken').value='';
+  document.getElementById('gistId').value='';
+  document.getElementById('gistTestResult').textContent='同步設定已清除';
+  setSyncStatus('local');
+}
+function openDataModal(){
+  document.getElementById('gistToken').value=GIST_CONFIG.token||'';
+  document.getElementById('gistId').value=GIST_CONFIG.gistId||'';
+  document.getElementById('gistTestResult').textContent='';
+  const enc=GIST_CONFIG.encrypted||false;
+  document.getElementById('gistEncToggle').checked=enc;
+  document.getElementById('gistPwRow').style.display=enc?'block':'none';
+  document.getElementById('gistPw').value='';
+  openMo('moData');
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`worklog_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();URL.revokeObjectURL(a.href);
+}
+function importData(inp){
+  if(!inp.files[0])return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!confirm('確定要匯入？這會覆蓋目前所有資料。'))return;
+      D=data;
+      for(const k of Object.keys(LS)) sv(k);
+      rAll();cMo('moData');
+    }catch(err){alert('檔案格式錯誤，請選擇正確的備份 JSON 檔案。');}
+  };
+  r.readAsText(inp.files[0]);
+}
+function openMo(id){document.getElementById(id).classList.add('on');}
+function cMo(id){document.getElementById(id).classList.remove('on');}
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
+
+ls();
+async function initApp(){
+  if(GIST_CONFIG.token&&GIST_CONFIG.gistId){
+    if(GIST_CONFIG.encrypted){
+      // need password to decrypt
+      const pw=prompt('請輸入同步密碼以載入最新資料：');
+      if(pw){
+        _cryptoKey=await buildCryptoKey(pw);
+        setSyncStatus('syncing');
+        const result=await pullFromGist();
+        if(result===true){rAll();setSyncStatus('synced');}
+        else if(result==='wrong_password'){
+          alert('密碼錯誤，將載入本地資料。');
+          rAll();setSyncStatus('error');_cryptoKey=null;
+        } else {rAll();setSyncStatus('error');}
+      } else {rAll();setSyncStatus('local');}
+    } else {
+      setSyncStatus('syncing');
+      const ok=await pullFromGist();
+      if(ok===true){rAll();setSyncStatus('synced');}else{rAll();setSyncStatus('error');}
+    }
+  } else {rAll();}
+}
+initApp();
+document.getElementById('todoDateQ').value=td();
+</script>
+
+<!-- EDIT TODO MODAL -->
+<div class="mo" id="moEditTodo">
+  <div class="modal" style="max-width:420px">
+    <button class="mclose" onclick="cMo('moEditTodo')">×</button>
+    <div class="mtitle">編輯待辦</div>
+    <div class="fl">內容</div><input class="fi" id="etTxt" placeholder="待辦內容">
+    <div class="fl">日期</div><input class="fi" id="etDate" type="date">
+    <div class="fl">優先級</div>
+    <div class="pills" id="etPriPills">
+      <button class="pill mid on" data-p="mid" onclick="sETP(this)">一般</button>
+      <button class="pill" data-p="high" onclick="sETP(this)">緊急</button>
+      <button class="pill" data-p="low" onclick="sETP(this)">輕鬆</button>
+    </div>
+    <input type="hidden" id="etId">
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cMo('moEditTodo')">取消</button>
+      <button class="btn btn-sage" onclick="svEditTodo()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- DATA / SYNC MODAL -->
+<div class="mo" id="moData">
+  <div class="modal" style="max-width:500px">
+    <button class="mclose" onclick="cMo('moData')">×</button>
+    <div class="mtitle">資料與同步</div>
+    <div class="msub">設定跨裝置同步，或手動備份還原</div>
+
+    <!-- GIST SYNC SECTION -->
+    <div style="background:var(--sage-l);border-radius:var(--rs);padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:500;margin-bottom:3px">跨裝置同步（GitHub Gist）</div>
+      <div style="font-size:11px;color:var(--ink-l);margin-bottom:12px;line-height:1.6">設定後所有裝置即時同步，完全免費。需要一個 GitHub 帳號。</div>
+      <div class="fl" style="margin-top:0">GitHub Personal Access Token</div>
+      <input class="fi" id="gistToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxx">
+      <div class="fl">Gist ID</div>
+      <input class="fi" id="gistId" placeholder="建立 Gist 後貼上 ID（32 字元）">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;margin-bottom:4px">
+        <input type="checkbox" id="gistEncToggle" style="accent-color:var(--sage);width:15px;height:15px" onchange="document.getElementById('gistPwRow').style.display=this.checked?'block':'none'">
+        <label for="gistEncToggle" style="font-size:12px;color:var(--ink-l);cursor:pointer">啟用端對端加密（建議開啟）</label>
+        <span style="font-size:10px;background:var(--sage-l);color:var(--sage);padding:1px 6px;border-radius:8px;border:1px solid var(--sage-m)">🔒 AES-256</span>
+      </div>
+      <div id="gistPwRow" style="display:none">
+        <div class="fl" style="margin-top:6px">加密密碼</div>
+        <input class="fi" id="gistPw" type="password" placeholder="設定一組你記得住的密碼">
+        <div style="font-size:11px;color:var(--stone);margin-top:4px;line-height:1.5">密碼只存在你的腦袋裡，不會被上傳。每次在新裝置開啟時需要輸入一次。</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-sage btn-sm" onclick="saveGistConfig()" style="flex:1">儲存同步設定</button>
+        <button class="btn btn-ghost btn-sm" onclick="testGistConnection()">測試連線</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearGistConfig()">清除</button>
+      </div>
+      <div id="gistTestResult" style="font-size:11px;margin-top:8px;color:var(--stone)"></div>
+    </div>
+
+    <!-- MANUAL BACKUP -->
+    <div style="font-size:12px;font-weight:500;color:var(--ink-l);margin-bottom:8px">手動備份</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-ghost" onclick="exportData()" style="width:100%;padding:10px;font-size:13px">⬇ 匯出所有資料（JSON）</button>
+      <div style="border:2px dashed rgba(45,41,38,.12);border-radius:var(--rs);padding:14px;text-align:center;cursor:pointer;transition:border-color .2s" onclick="document.getElementById('importFile').click()" onmouseover="this.style.borderColor='var(--sage)'" onmouseout="this.style.borderColor='rgba(45,41,38,.12)'">
+        <div style="font-size:13px;font-weight:500;color:var(--ink-l)">⬆ 匯入備份檔案</div>
+        <div style="font-size:11px;color:var(--stone);margin-top:2px">選擇之前匯出的 .json 檔</div>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
+      </div>
+      <div style="background:var(--amber-l);border-radius:var(--rs);padding:9px 12px;font-size:11px;color:var(--ink-l);line-height:1.6">⚠ 匯入會覆蓋目前所有資料，請先匯出備份再操作。</div>
+    </div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cMo('moData')">關閉</button></div>
+  </div>
+</div>
+</body>
+</html>
