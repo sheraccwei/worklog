@@ -184,7 +184,7 @@ textarea.fi{resize:vertical;min-height:60px;line-height:1.6}
     <button class="ntab" onclick="tab('monthly')">月份規劃</button>
     <button class="ntab" onclick="tab('personal')">個人中心</button>
   </div>
-  <div style="display:flex;align-items:center;gap:8px"><span class="sync-badge" id="syncStatus">本地</span><button class="btn btn-ghost btn-sm" onclick="openDataModal()" style="font-size:11px">備份</button><div class="nav-date" id="navDate"></div></div>
+  <div style="display:flex;align-items:center;gap:8px"><span class="sync-badge" id="syncStatus" onclick="onSyncBadgeClick()" style="cursor:pointer" title="點擊重新同步">本地</span><button class="btn btn-ghost btn-sm" onclick="openDataModal()" style="font-size:11px">備份</button><div class="nav-date" id="navDate"></div></div>
 </nav>
 
 <div class="page on" id="pg-dashboard">
@@ -881,26 +881,29 @@ function importData(inp){
   };
   r.readAsText(inp.files[0]);
 }
+function onSyncBadgeClick(){
+  if(!GIST_CONFIG.token||!GIST_CONFIG.gistId){openDataModal();return;}
+  if(GIST_CONFIG.encrypted&&!_cryptoKey){openUnlockModal();return;}
+  if(GIST_CONFIG.encrypted&&_cryptoKey){
+    setSyncStatus('syncing');
+    pushToGist();return;
+  }
+  setSyncStatus('syncing');
+  pullFromGist().then(ok=>{if(ok===true){rAll();setSyncStatus('synced');}else setSyncStatus('error');});
+}
 function openMo(id){document.getElementById(id).classList.add('on');}
 function cMo(id){document.getElementById(id).classList.remove('on');}
 document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
 
 ls();
 async function initApp(){
+  ls();
   if(GIST_CONFIG.token&&GIST_CONFIG.gistId){
     if(GIST_CONFIG.encrypted){
-      // need password to decrypt
-      const pw=prompt('請輸入同步密碼以載入最新資料：');
-      if(pw){
-        _cryptoKey=await buildCryptoKey(pw);
-        setSyncStatus('syncing');
-        const result=await pullFromGist();
-        if(result===true){rAll();setSyncStatus('synced');}
-        else if(result==='wrong_password'){
-          alert('密碼錯誤，將載入本地資料。');
-          rAll();setSyncStatus('error');_cryptoKey=null;
-        } else {rAll();setSyncStatus('error');}
-      } else {rAll();setSyncStatus('local');}
+      // Show unlock modal instead of prompt
+      rAll();
+      setSyncStatus('local');
+      openUnlockModal();
     } else {
       setSyncStatus('syncing');
       const ok=await pullFromGist();
@@ -908,6 +911,40 @@ async function initApp(){
     }
   } else {rAll();}
 }
+
+async function unlockAndSync(){
+  const pw=document.getElementById('unlockPw').value;
+  if(!pw)return;
+  const btn=document.getElementById('unlockBtn');
+  const err=document.getElementById('unlockErr');
+  btn.textContent='同步中…';btn.disabled=true;err.textContent='';
+  _cryptoKey=await buildCryptoKey(pw);
+  setSyncStatus('syncing');
+  const result=await pullFromGist();
+  if(result===true){
+    rAll();setSyncStatus('synced');
+    cMo('moUnlock');
+    document.getElementById('unlockPw').value='';
+  } else if(result==='wrong_password'){
+    err.textContent='密碼錯誤，請再試一次';
+    err.style.color='var(--blush)';
+    _cryptoKey=null;setSyncStatus('error');
+  } else {
+    err.textContent='同步失敗，請檢查網路或設定';
+    err.style.color='var(--blush)';
+    setSyncStatus('error');
+  }
+  btn.textContent='解鎖並同步';btn.disabled=false;
+}
+
+function openUnlockModal(){
+  document.getElementById('unlockPw').value='';
+  document.getElementById('unlockErr').textContent='';
+  document.getElementById('unlockBtn').textContent='解鎖並同步';
+  document.getElementById('unlockBtn').disabled=false;
+  openMo('moUnlock');
+}
+
 initApp();
 document.getElementById('todoDateQ').value=td();
 </script>
@@ -978,6 +1015,22 @@ document.getElementById('todoDateQ').value=td();
       <div style="background:var(--amber-l);border-radius:var(--rs);padding:9px 12px;font-size:11px;color:var(--ink-l);line-height:1.6">⚠ 匯入會覆蓋目前所有資料，請先匯出備份再操作。</div>
     </div>
     <div class="mfoot"><button class="btn btn-ghost" onclick="cMo('moData')">關閉</button></div>
+  </div>
+</div>
+
+<!-- UNLOCK MODAL -->
+<div class="mo" id="moUnlock">
+  <div class="modal" style="max-width:380px">
+    <div class="mtitle">輸入同步密碼</div>
+    <div class="msub">載入 Gist 上的最新資料需要密碼驗證</div>
+    <div class="fl">加密密碼</div>
+    <input class="fi" id="unlockPw" type="password" placeholder="輸入你設定的密碼"
+      onkeydown="if(event.key==='Enter')unlockAndSync()">
+    <div id="unlockErr" style="font-size:12px;margin-top:6px;min-height:18px"></div>
+    <div class="mfoot" style="margin-top:12px">
+      <button class="btn btn-ghost" onclick="cMo('moUnlock');setSyncStatus('local')">略過（使用本地資料）</button>
+      <button class="btn btn-sage" id="unlockBtn" onclick="unlockAndSync()">解鎖並同步</button>
+    </div>
   </div>
 </div>
 </body>
