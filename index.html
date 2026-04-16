@@ -489,22 +489,61 @@ function setSyncStatus(s){
   const m=map[s]||map.local;
   el.textContent=m.txt;el.className='sync-badge '+m.cls;
 }
+function sanitizeForSync(data){
+  // Remove base64 image data before syncing (too large for Gist, kept in localStorage only)
+  const d=JSON.parse(JSON.stringify(data));
+  if(d.projects) d.projects=d.projects.map(p=>({
+    ...p,
+    thumb: p.thumb&&p.thumb.startsWith('data:')? '__local_img__':p.thumb,
+    subs: (p.subs||[]).map(s=>({...s, img: s.img&&s.img.startsWith('data:')? '__local_img__':s.img}))
+  }));
+  return d;
+}
+function mergeWithLocalImages(remote){
+  // Restore local images after pull (images stay on device)
+  if(!remote.projects) return remote;
+  remote.projects=remote.projects.map(rp=>{
+    const lp=D.projects.find(p=>p.id===rp.id);
+    if(!lp) return rp;
+    return {
+      ...rp,
+      thumb: rp.thumb==='__local_img__'? lp.thumb : rp.thumb,
+      subs: (rp.subs||[]).map(rs=>{
+        const ls=lp.subs?.find(s=>s.id===rs.id);
+        return {...rs, img: rs.img==='__local_img__'? ls?.img : rs.img};
+      })
+    };
+  });
+  return remote;
+}
 async function pushToGist(){
   if(!GIST_CONFIG.token||!GIST_CONFIG.gistId)return;
   try{
+    const syncData=sanitizeForSync(D);
     let content;
     if(GIST_CONFIG.encrypted&&_cryptoKey){
-      content=await encryptData(JSON.stringify(D),_cryptoKey);
+      content=await encryptData(JSON.stringify(syncData),_cryptoKey);
     } else {
-      content=JSON.stringify(D);
+      content=JSON.stringify(syncData);
+    }
+    // Check size - Gist has ~10MB limit but keep well under
+    if(content.length>500000){
+      setSyncStatus('error');
+      console.warn('Sync data too large:',content.length);
+      return;
     }
     const payload=JSON.stringify({files:{'worklog.json':{content}}});
     const res=await fetch(`https://api.github.com/gists/${GIST_CONFIG.gistId}`,{
       method:'PATCH',headers:{'Authorization':'token '+GIST_CONFIG.token,'Content-Type':'application/json'},
       body:payload
     });
-    if(res.ok)setSyncStatus('synced'); else setSyncStatus('error');
-  }catch(e){setSyncStatus('error');}
+    if(res.ok){setSyncStatus('synced');}
+    else{
+      const err=await res.json().catch(()=>({}));
+      console.warn('Gist push failed:',res.status,err);
+      setSyncStatus('error');
+    }
+  }catch(e){console.warn('pushToGist error:',e);setSyncStatus('error');}
 }
 async function pullFromGist(){
   if(!GIST_CONFIG.token||!GIST_CONFIG.gistId)return false;
@@ -534,6 +573,8 @@ async function pullFromGist(){
     } else {
       try{remote=JSON.parse(rawContent);}catch(e){return false;}
     }
+    // Restore local-only images before overwriting D
+    remote=mergeWithLocalImages(remote);
     Object.keys(D).forEach(k=>{if(remote[k]!==undefined)D[k]=remote[k];});
     for(const[k,sk]of Object.entries(LS)){try{localStorage.setItem(sk,JSON.stringify(D[k]));}catch(e){}}
     return true;
