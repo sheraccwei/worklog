@@ -457,8 +457,11 @@ let D={todos:[],projects:[],leave:{total:15,used:0},memos:[],goals:[],calEvents:
 // 設定完成後會自動跨裝置同步，未設定則使用 localStorage
 let GIST_CONFIG={token:'',gistId:'',encrypted:false};
 try{const g=localStorage.getItem('wl3_gist');if(g)GIST_CONFIG=JSON.parse(g);}catch(e){}
-// encryption key derived from password - never stored
+// encryption key derived from password
 let _cryptoKey=null;
+// stored pw (obfuscated in localStorage, not plaintext)
+let _storedPw='';
+try{const sp=localStorage.getItem('wl3_spw');if(sp)_storedPw=atob(sp);}catch(e){}
 let syncStatus='local'; // 'local' | 'syncing' | 'synced' | 'error'
 let saveTimer=null;
 let curM=new Date();curM.setDate(1);
@@ -473,6 +476,7 @@ function sv(k){
 }
 function scheduleGistSave(){
   if(!GIST_CONFIG.token||!GIST_CONFIG.gistId)return;
+  if(GIST_CONFIG.encrypted&&!_cryptoKey)return; // not unlocked yet, skip
   clearTimeout(saveTimer);
   saveTimer=setTimeout(pushToGist,2000); // debounce 2s
   setSyncStatus('syncing');
@@ -827,7 +831,14 @@ async function saveGistConfig(){
   if(!t||!g){document.getElementById('gistTestResult').textContent='⚠ 請填寫 Token 和 Gist ID';return;}
   if(useEnc&&!pw){document.getElementById('gistTestResult').textContent='⚠ 啟用加密請設定密碼';return;}
   GIST_CONFIG={token:t,gistId:g,encrypted:useEnc};
-  if(useEnc){_cryptoKey=await buildCryptoKey(pw);}else{_cryptoKey=null;}
+  if(useEnc){
+    _cryptoKey=await buildCryptoKey(pw);
+    _storedPw=pw;
+    try{localStorage.setItem('wl3_spw',btoa(pw));}catch(e){}
+  } else {
+    _cryptoKey=null;_storedPw='';
+    try{localStorage.removeItem('wl3_spw');}catch(e){}
+  }
   try{localStorage.setItem('wl3_gist',JSON.stringify(GIST_CONFIG));}catch(e){}
   document.getElementById('gistTestResult').textContent='設定已儲存，正在測試連線…';
   testGistConnection();
@@ -849,10 +860,12 @@ async function testGistConnection(){
 }
 function clearGistConfig(){
   if(!confirm('確定要清除同步設定？（資料不會被刪除）'))return;
-  GIST_CONFIG={token:'',gistId:''};
-  try{localStorage.removeItem('wl3_gist');}catch(e){}
+  GIST_CONFIG={token:'',gistId:'',encrypted:false};
+  _cryptoKey=null;_storedPw='';
+  try{localStorage.removeItem('wl3_gist');localStorage.removeItem('wl3_spw');}catch(e){}
   document.getElementById('gistToken').value='';
   document.getElementById('gistId').value='';
+  document.getElementById('gistPw').value='';
   document.getElementById('gistTestResult').textContent='同步設定已清除';
   setSyncStatus('local');
 }
@@ -889,12 +902,13 @@ function importData(inp){
 function onSyncBadgeClick(){
   if(!GIST_CONFIG.token||!GIST_CONFIG.gistId){openDataModal();return;}
   if(GIST_CONFIG.encrypted&&!_cryptoKey){openUnlockModal();return;}
-  if(GIST_CONFIG.encrypted&&_cryptoKey){
-    setSyncStatus('syncing');
-    pushToGist();return;
-  }
+  // Manual sync: push local up then pull remote down
   setSyncStatus('syncing');
-  pullFromGist().then(ok=>{if(ok===true){rAll();setSyncStatus('synced');}else setSyncStatus('error');});
+  pushToGist().then(()=>{
+    if(!GIST_CONFIG.encrypted){
+      pullFromGist().then(ok=>{if(ok===true){rAll();setSyncStatus('synced');}else setSyncStatus('error');});
+    }
+  });
 }
 function openMo(id){document.getElementById(id).classList.add('on');}
 function cMo(id){document.getElementById(id).classList.remove('on');}
@@ -905,10 +919,22 @@ async function initApp(){
   ls();
   if(GIST_CONFIG.token&&GIST_CONFIG.gistId){
     if(GIST_CONFIG.encrypted){
-      // Show unlock modal instead of prompt
-      rAll();
-      setSyncStatus('local');
-      openUnlockModal();
+      if(_storedPw){
+        // Auto-unlock with stored password
+        _cryptoKey=await buildCryptoKey(_storedPw);
+        setSyncStatus('syncing');
+        const result=await pullFromGist();
+        if(result===true){rAll();setSyncStatus('synced');setTimeout(pushToGist,800);}
+        else if(result==='wrong_password'){
+          // Stored pw is wrong (maybe changed), ask once
+          _cryptoKey=null;rAll();setSyncStatus('error');
+          openUnlockModal();
+        } else {rAll();setSyncStatus('error');}
+      } else {
+        // No stored pw, need to set it once
+        rAll();setSyncStatus('local');
+        openUnlockModal();
+      }
     } else {
       setSyncStatus('syncing');
       const ok=await pullFromGist();
@@ -927,9 +953,13 @@ async function unlockAndSync(){
   setSyncStatus('syncing');
   const result=await pullFromGist();
   if(result===true){
+    // Save pw for auto-unlock next time on this device
+    try{localStorage.setItem('wl3_spw',btoa(pw));}catch(e){}
+    _storedPw=pw;
     rAll();setSyncStatus('synced');
     cMo('moUnlock');
     document.getElementById('unlockPw').value='';
+    setTimeout(pushToGist,500);
   } else if(result==='wrong_password'){
     err.textContent='密碼錯誤，請再試一次';
     err.style.color='var(--blush)';
@@ -998,7 +1028,7 @@ document.getElementById('todoDateQ').value=td();
       <div id="gistPwRow" style="display:none">
         <div class="fl" style="margin-top:6px">加密密碼</div>
         <input class="fi" id="gistPw" type="password" placeholder="設定一組你記得住的密碼">
-        <div style="font-size:11px;color:var(--stone);margin-top:4px;line-height:1.5">密碼只存在你的腦袋裡，不會被上傳。每次在新裝置開啟時需要輸入一次。</div>
+        <div style="font-size:11px;color:var(--stone);margin-top:4px;line-height:1.5">每台裝置只需要輸入一次。之後開啟頁面會自動同步，不需要再輸入密碼。</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button class="btn btn-sage btn-sm" onclick="saveGistConfig()" style="flex:1">儲存同步設定</button>
@@ -1027,7 +1057,7 @@ document.getElementById('todoDateQ').value=td();
 <div class="mo" id="moUnlock">
   <div class="modal" style="max-width:380px">
     <div class="mtitle">輸入同步密碼</div>
-    <div class="msub">載入 Gist 上的最新資料需要密碼驗證</div>
+    <div class="msub">輸入一次後，這台裝置之後會自動同步，不需要再輸入</div>
     <div class="fl">加密密碼</div>
     <input class="fi" id="unlockPw" type="password" placeholder="輸入你設定的密碼"
       onkeydown="if(event.key==='Enter')unlockAndSync()">
