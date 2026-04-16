@@ -516,6 +516,11 @@ async function pullFromGist(){
     let remote;
     if(GIST_CONFIG.encrypted){
       if(!_cryptoKey)return 'need_password';
+      // If content is empty/bare JSON object, treat as fresh start - no decryption needed
+      const trimmed=rawContent.trim();
+      if(trimmed==='{}'||trimmed===''||trimmed==='null'){
+        return true; // fresh gist, nothing to load
+      }
       try{
         const decrypted=await decryptData(rawContent,_cryptoKey);
         remote=JSON.parse(decrypted);
