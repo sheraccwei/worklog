@@ -396,22 +396,30 @@ textarea.fi{resize:vertical;min-height:60px;line-height:1.6}
 </div>
 
 <div class="mo" id="moCal">
-  <div class="modal">
+  <div class="modal" style="max-width:520px">
     <button class="mclose" onclick="cMo('moCal')">×</button>
-    <div class="mtitle" id="calDLbl"></div><div class="msub">點擊類型後輸入內容</div>
-    <div class="pills" id="calTP" style="margin-bottom:12px">
-      <button class="pill on" data-ct="memo" onclick="sCT(this)">備忘／筆記</button>
-      <button class="pill" data-ct="todo" onclick="sCT(this)">待辦任務</button>
-      <button class="pill" data-ct="plan" onclick="sCT(this)">行銷計劃</button>
-      <button class="pill" data-ct="leave" onclick="sCT(this)">特休假期</button>
-      <button class="pill" data-ct="race-ev" onclick="sCT(this)">賽事參與</button>
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+      <div class="mtitle" id="calDLbl"></div>
+      <div id="calDHoliday" style="font-size:12px;color:var(--amber);font-weight:500"></div>
     </div>
-    <input class="fi" id="calET" placeholder="輸入內容...">
-    <div class="mfoot" style="margin-top:12px">
-      <button class="btn btn-ghost" onclick="cMo('moCal')">取消</button>
-      <button class="btn btn-sage" onclick="svCalEv()">新增</button>
+    <div id="calDayContent" style="margin-bottom:14px"></div>
+    <div style="border-top:1px solid rgba(45,41,38,.07);padding-top:14px">
+      <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--stone);margin-bottom:8px">新增記錄</div>
+      <div class="pills" id="calTP" style="margin-bottom:10px">
+        <button class="pill on" data-ct="memo" onclick="sCT(this)">備忘</button>
+        <button class="pill" data-ct="todo" onclick="sCT(this)">待辦</button>
+        <button class="pill" data-ct="plan" onclick="sCT(this)">行銷計劃</button>
+        <button class="pill" data-ct="leave" onclick="sCT(this)">特休</button>
+        <button class="pill" data-ct="race-ev" onclick="sCT(this)">賽事</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input class="fi" id="calET" placeholder="輸入內容..." style="flex:1" onkeydown="if(event.key==='Enter')svCalEv()">
+        <button class="btn btn-sage btn-sm" onclick="svCalEv()">新增</button>
+      </div>
     </div>
-    <div id="calDEx" style="margin-top:13px;padding-top:12px;border-top:1px solid rgba(45,41,38,.07)"></div>
+    <div class="mfoot" style="margin-top:14px">
+      <button class="btn btn-ghost" onclick="cMo('moCal')">關閉</button>
+    </div>
   </div>
 </div>
 
@@ -627,19 +635,68 @@ const MD={'😊':'#7a9e87','😌':'#7aaec9','😐':'#c5c0bb','😤':'#d4888a','�
 function tico(t){const ic={social:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="3" width="14" height="11" rx="2.5" stroke="currentColor"/><path d="M7 17h6M10 14v3" stroke="currentColor"/></svg>`,blog:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="2.5" stroke="currentColor"/><path d="M6 7h8M6 10h6M6 13h4" stroke="currentColor"/></svg>`,event:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="3" y="5" width="14" height="12" rx="2.5" stroke="currentColor"/><path d="M7 3v3M13 3v3M3 10h14" stroke="currentColor"/></svg>`,edm:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><rect x="2" y="5" width="16" height="11" rx="2.5" stroke="currentColor"/><path d="M2 7l8 5 8-5" stroke="currentColor"/></svg>`,kol:`<svg viewBox="0 0 20 20" fill="none" stroke-width="1.5"><circle cx="10" cy="7" r="3.5" stroke="currentColor"/><path d="M3 17c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor"/></svg>`};return`<div class="tico ${t}">${ic[t]||''}</div>`;}
 function ckSvg(){return`<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="white" stroke-width="2"><path d="M1.5 4.5l2 2 4-4"/></svg>`}
 
-function qTodo(){const v=document.getElementById('todoTxt').value.trim();if(!v)return;const d=document.getElementById('todoDateQ').value||td();D.todos.push({id:Date.now(),text:v,priority:document.getElementById('todoPri').value,done:false,date:d});document.getElementById('todoTxt').value='';sv('todos');rTodos();}
+function qTodo(){
+  const v=document.getElementById('todoTxt').value.trim();if(!v)return;
+  const d=document.getElementById('todoDateQ').value||td();
+  const newTodo={id:Date.now(),text:v,priority:document.getElementById('todoPri').value,done:false,date:d};
+  D.todos.push(newTodo);
+  document.getElementById('todoTxt').value='';
+  // Also add to calEvents so calendar shows it
+  if(!D.calEvents[d])D.calEvents[d]=[];
+  const exists=D.calEvents[d].some(e=>e.type==='todo'&&e.text===v);
+  if(!exists) D.calEvents[d].push({type:'todo',text:v});
+  sv('todos');sv('calEvents');
+  rTodos();rCal();
+}
 
 function rTodos(){
-  const t=td();const pOrd={high:0,mid:1,low:2};const ti=D.todos.filter(x=>x.date===t).sort((a,b)=>(pOrd[a.priority]||1)-(pOrd[b.priority]||1)),fu=D.todos.filter(x=>x.date>t&&!x.done);
-  document.getElementById('todayCnt').textContent=ti.filter(x=>!x.done).length;
+  const t=td();
+  const pOrd={high:0,mid:1,low:2};
   const pL={high:'緊急',mid:'一般',low:'輕鬆'};
-  document.getElementById('todoList').innerHTML=ti.length?ti.map(x=>`<div class="ti"><div class="tck ${x.done?'on':''}" onclick="togT(${x.id})">${x.done?ckSvg():''}</div><span class="ttxt ${x.done?'done':''}">${x.text}</span><span class="ptag ${x.priority}">${pL[x.priority]}</span><button class="bico" style="opacity:0;font-size:11px" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0" onclick="editTodo(${x.id})" style="font-size:11px;opacity:0;transition:opacity .15s" class="bico edit-todo-btn">✎</button><button class="tdel" onclick="delT(${x.id})">×</button></div>`).join(''):'<div style="font-size:12px;color:var(--stone);padding:6px 0">今天還沒有待辦</div>';
+  // Today's todos
+  const ti=D.todos.filter(x=>x.date===t).sort((a,b)=>(pOrd[a.priority]||1)-(pOrd[b.priority]||1));
+  // Overdue: past date, not done
+  const overdue=D.todos.filter(x=>x.date<t&&!x.done).sort((a,b)=>(pOrd[a.priority]||1)-(pOrd[b.priority]||1));
+  // Future
+  const fu=D.todos.filter(x=>x.date>t&&!x.done);
+  // Count badge: today undone + overdue
+  document.getElementById('todayCnt').textContent=ti.filter(x=>!x.done).length+(overdue.length?'+'+overdue.length:'');
+
+  function todoRow(x,isOverdue){
+    const overdueLabel=isOverdue?`<span style="font-size:10px;color:var(--blush);margin-right:2px">${fmtDate(x.date)}</span>`:'';
+    return`<div class="ti" style="${isOverdue?'opacity:.8':''}">
+      <div class="tck ${x.done?'on':''}" onclick="togT(${x.id})">${x.done?ckSvg():''}</div>
+      ${overdueLabel}
+      <span class="ttxt ${x.done?'done':''}">${x.text}</span>
+      <span class="ptag ${x.priority}">${pL[x.priority]}</span>
+      <button class="bico" style="opacity:0;font-size:11px;transition:opacity .15s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0" onclick="editTodo(${x.id})">✎</button>
+      <button class="tdel" onclick="delT(${x.id})">×</button>
+    </div>`;
+  }
+
+  let html='';
+  if(overdue.length){
+    html+=`<div style="font-size:10px;letter-spacing:.06em;color:var(--blush);margin-bottom:5px;display:flex;align-items:center;gap:5px">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="5"/><path d="M6 3.5v3M6 8.5v.5"/></svg>
+      未完成 ${overdue.length} 項
+    </div>`;
+    html+=overdue.map(x=>todoRow(x,true)).join('');
+    if(ti.length) html+=`<div style="height:1px;background:rgba(45,41,38,.07);margin:8px 0"></div>`;
+  }
+  html+=ti.length?ti.map(x=>todoRow(x,false)).join(''):'<div style="font-size:12px;color:var(--stone);padding:6px 0">今天還沒有待辦</div>';
+  document.getElementById('todoList').innerHTML=html;
+
+  // Week preview
   const byDay={};fu.forEach(x=>{if(!byDay[x.date])byDay[x.date]=[];byDay[x.date].push(x);});
   const days=Object.keys(byDay).sort().slice(0,5);
-  document.getElementById('weekPrev').innerHTML=days.length?days.map(d=>{const dt=new Date(d+'T12:00:00'),dw=['日','一','二','三','四','五','六'];return`<div class="wrow"><div class="wday">${dt.getMonth()+1}/${dt.getDate()} 週${dw[dt.getDay()]}</div><div class="wchips">${byDay[d].map(x=>`<span class="wchip ${x.priority||'mid'}">${x.text}</span>`).join('')}</div></div>`;}).join(''):'<div style="font-size:12px;color:var(--stone)">本週無其他待辦</div>';
+  document.getElementById('weekPrev').innerHTML=days.length?days.map(d=>{
+    const dt=new Date(d+'T12:00:00'),dw=['日','一','二','三','四','五','六'];
+    return`<div class="wrow"><div class="wday">${dt.getMonth()+1}/${dt.getDate()} 週${dw[dt.getDay()]}</div><div class="wchips">${byDay[d].map(x=>`<span class="wchip ${x.priority||'mid'}">${x.text}</span>`).join('')}</div></div>`;
+  }).join(''):'<div style="font-size:12px;color:var(--stone)">本週無其他待辦</div>';
 }
-function togT(id){const x=D.todos.find(t=>t.id===id);if(x){x.done=!x.done;sv('todos');rTodos();}}
-function delT(id){D.todos=D.todos.filter(x=>x.id!==id);sv('todos');rTodos();}
+function fmtDate(ds){if(!ds)return'';const dt=new Date(ds+'T12:00:00');return`${dt.getMonth()+1}/${dt.getDate()}`;}
+function togT(id){const x=D.todos.find(t=>t.id===id);if(x){x.done=!x.done;sv('todos');rTodos();rCal();}}
+function delT(id){D.todos=D.todos.filter(x=>x.id!==id);sv('todos');rTodos();rCal();}
 
 function selMood(b){cMood=b.dataset.m;document.querySelectorAll('.mbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
 function saveMemo(){const txt=document.getElementById('memoTxt').value.trim();if(!txt)return;D.memos.unshift({id:Date.now(),text:txt,mood:cMood,date:td(),dateLabel:new Date().toLocaleDateString('zh-TW')});document.getElementById('memoTxt').value='';sv('memos');rMemos();rCal();}
@@ -768,8 +825,19 @@ function mkC(g,num,ds,other,isWE,isT){
     if(cFil.mkt&&HL[mmdd]?.t==='mkt')html+=`<div class="hblk mkt">${HL[mmdd].n}</div>`;
     if(cFil.race&&RC[mmdd])html+=`<div class="hblk race">${RC[mmdd].n}</div>`;
     if(cFil.user){
-      evs.forEach(e=>html+=`<div class="cev ${e.type}">${e.text}</div>`);
+      // Collect counts for summary dots only
+      const dateTodos=D.todos.filter(x=>x.date===ds);
+      const undone=dateTodos.filter(x=>!x.done);
+      const hasUrgent=undone.some(x=>x.priority==='high');
       const mo=D.memos.find(x=>x.date===ds);
+      const nonTodoEvs=evs.filter(e=>e.type!=='todo'&&e.type!=='leave');
+      // Show non-leave cal events as compact chips (max 1)
+      if(nonTodoEvs.length>0) html+=`<div class="cev ${nonTodoEvs[0].type}" style="font-size:9px">${nonTodoEvs[0].text}</div>`;
+      // Summary line: todo count + mood dot
+      const summaryParts=[];
+      if(undone.length>0) summaryParts.push(`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:${hasUrgent?'var(--blush-l)':'var(--sage-l)'};color:${hasUrgent?'var(--blush)':'var(--sage)'};font-weight:500">${undone.length} 件待辦</span>`);
+      if(dateTodos.filter(x=>x.done).length>0&&undone.length===0) summaryParts.push(`<span style="font-size:9px;color:var(--stone-l)">✓ 全完成</span>`);
+      if(summaryParts.length) html+=`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:1px">${summaryParts.join('')}</div>`;
       if(mo)html+=`<div class="mood-dot" style="background:${MD[mo.mood]||'var(--sage-m)'}"></div>`;
       D.projects.filter(p=>p.start===ds||p.end===ds).forEach(p=>html+=`<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${CL[p.type]};margin:1px"></span>`);
     }
@@ -781,17 +849,101 @@ function chgM(d){curM.setMonth(curM.getMonth()+d);rCal();}
 function togCF(btn){const k=btn.dataset.cf;cFil[k]=!cFil[k];btn.classList.toggle('on',cFil[k]);rCal();}
 
 function openCalDay(ds){
-  calSD=ds;const dt=new Date(ds+'T12:00:00'),dw=['日','一','二','三','四','五','六'];
-  document.getElementById('calDLbl').textContent=`${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日 週${dw[dt.getDay()]}`;
+  calSD=ds;
+  const dt=new Date(ds+'T12:00:00'),dw=['日','一','二','三','四','五','六'];
+  const isToday=ds===td();
+  const isMon=ds.slice(5);
+  const holiday=HL[isMon]||RC[isMon];
+  // Header
+  document.getElementById('calDLbl').textContent=`${dt.getMonth()+1}月${dt.getDate()}日 週${dw[dt.getDay()]}${isToday?' · 今天':''}`;
+  const hdEl=document.getElementById('calDHoliday');
+  if(hdEl) hdEl.textContent=holiday?holiday.n:'';
+  // Reset add form
   document.getElementById('calET').value='';cCT='memo';
-  document.querySelectorAll('#calTP .pill').forEach(b=>b.classList.remove('on'));document.querySelector('#calTP [data-ct="memo"]').classList.add('on');
-  const ex=D.calEvents[ds]||[];
-  const exEl=document.getElementById('calDEx');
-  exEl.innerHTML=ex.length?'<div style="font-size:11px;color:var(--stone);margin-bottom:6px">已有紀錄</div>'+ex.map((e,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--warm);border-radius:6px;margin-bottom:4px"><span class="badge" style="background:var(--sage-l);color:var(--sage);flex-shrink:0">${{memo:'備忘',todo:'待辦',plan:'行銷',leave:'特休','race-ev':'賽事'}[e.type]||e.type}</span><span style="flex:1;font-size:12px">${e.text}</span><button class="bico" onclick="dlCalEv('${ds}',${i})">×</button></div>`).join(''):'';
+  document.querySelectorAll('#calTP .pill').forEach(b=>b.classList.remove('on'));
+  document.querySelector('#calTP [data-ct="memo"]').classList.add('on');
+  renderDayPanel(ds);
   openMo('moCal');
 }
+
+function renderDayPanel(ds){
+  const el=document.getElementById('calDayContent');if(!el)return;
+  const todos=D.todos.filter(x=>x.date===ds);
+  const evs=(D.calEvents[ds]||[]).filter(e=>e.type!=='todo');
+  const pOrd={high:0,mid:1,low:2};
+  const pL={high:'緊急',mid:'一般',low:'輕鬆'};
+  const sortedTodos=todos.sort((a,b)=>(pOrd[a.priority]||1)-(pOrd[b.priority]||1));
+
+  let h='';
+
+  // TODOS section
+  if(sortedTodos.length>0){
+    h+=`<div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--stone);margin-bottom:8px">待辦事項</div>`;
+    h+=sortedTodos.map(x=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--warm);border-radius:var(--rs);margin-bottom:5px">
+        <div class="tck ${x.done?'on':''}" onclick="togT(${x.id});renderDayPanel('${ds}')">${x.done?ckSvg():''}</div>
+        <span style="flex:1;font-size:13px;${x.done?'text-decoration:line-through;opacity:.45':''}">${x.text}</span>
+        <span class="ptag ${x.priority}" style="flex-shrink:0">${pL[x.priority]}</span>
+        <button class="bico" style="font-size:11px" onclick="editTodoFromCal(${x.id},'${ds}')">✎</button>
+        <button class="bico" style="color:var(--blush)" onclick="delT(${x.id});renderDayPanel('${ds}')">×</button>
+      </div>`).join('');
+  }
+
+  // CAL EVENTS section (memo, plan, leave, race-ev)
+  const evLabels={memo:'備忘',plan:'行銷計劃',leave:'特休','race-ev':'賽事'};
+  if(evs.length>0){
+    if(sortedTodos.length>0) h+=`<div style="height:12px"></div>`;
+    h+=`<div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--stone);margin-bottom:8px">其他記錄</div>`;
+    h+=evs.map((e,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--warm);border-radius:var(--rs);margin-bottom:5px">
+        <span class="badge ${e.type}" style="flex-shrink:0">${evLabels[e.type]||e.type}</span>
+        <span id="calEvTxt_${i}" style="flex:1;font-size:13px">${e.text}</span>
+        <button class="bico" style="font-size:11px" onclick="editCalEv('${ds}',${i})">✎</button>
+        <button class="bico" style="color:var(--blush)" onclick="dlCalEv('${ds}',${i})">×</button>
+      </div>`).join('');
+  }
+
+  if(!sortedTodos.length&&!evs.length){
+    h='<div style="font-size:12px;color:var(--stone);text-align:center;padding:16px 0">這天還沒有任何記錄</div>';
+  }
+
+  el.innerHTML=h;
+}
+
+function editTodoFromCal(id,ds){
+  editTodo(id);
+  // After edit modal closes, re-render day panel
+  const orig=document.getElementById('moEditTodo').querySelector('.btn-sage');
+  const origClick=orig.onclick;
+  orig.onclick=function(){svEditTodo();renderDayPanel(ds);};
+}
+
+function editCalEv(ds,i){
+  const ev=(D.calEvents[ds]||[])[i];if(!ev)return;
+  const newTxt=prompt('編輯內容：',ev.text);
+  if(newTxt===null)return;
+  D.calEvents[ds][i].text=newTxt.trim()||ev.text;
+  sv('calEvents');renderDayPanel(ds);rCal();scheduleGistSave();
+}
 function sCT(b){cCT=b.dataset.ct;document.querySelectorAll('#calTP .pill').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
-function svCalEv(){const txt=document.getElementById('calET').value.trim();if(!txt)return;if(!D.calEvents[calSD])D.calEvents[calSD]=[];D.calEvents[calSD].push({type:cCT,text:txt});sv('calEvents');if(cCT==='todo'){D.todos.push({id:Date.now(),text:txt,priority:'mid',done:false,date:calSD});sv('todos');rTodos();}rCal();openCalDay(calSD);}
+function svCalEv(){
+  const txt=document.getElementById('calET').value.trim();if(!txt)return;
+  document.getElementById('calET').value='';
+  if(cCT==='todo'){
+    // Add to D.todos (source of truth for todos)
+    const exists=D.todos.some(t=>t.text===txt&&t.date===calSD);
+    if(!exists){D.todos.push({id:Date.now(),text:txt,priority:'mid',done:false,date:calSD});sv('todos');}
+    rTodos();
+  } else {
+    // Other types go to calEvents
+    if(!D.calEvents[calSD])D.calEvents[calSD]=[];
+    D.calEvents[calSD].push({type:cCT,text:txt});
+    sv('calEvents');
+  }
+  rCal();
+  renderDayPanel(calSD);
+  scheduleGistSave();
+}
 function dlCalEv(ds,i){D.calEvents[ds].splice(i,1);if(!D.calEvents[ds].length)delete D.calEvents[ds];sv('calEvents');rCal();openCalDay(ds);}
 
 function saveLv(){D.leave={total:parseInt(document.getElementById('lvTotal').value)||15,used:parseInt(document.getElementById('lvUsed').value)||0};sv('leave');rLv();rAI();}
