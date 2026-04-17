@@ -274,7 +274,7 @@ textarea.fi{resize:vertical;min-height:60px;line-height:1.6}
       <div class="ctitle"><div class="ctitle-l">特休追蹤</div></div>
       <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end">
         <div><div class="fl">年度總天數</div><input type="number" id="lvTotal" class="fi" style="width:72px" min="0" max="40" placeholder="15"></div>
-        <div><div class="fl">已使用</div><input type="number" id="lvUsed" class="fi" style="width:72px" min="0" max="40" placeholder="0"></div>
+        <div style="display:flex;flex-direction:column;gap:2px"><div class="fl">已使用（自動計算）</div><div id="lvUsedReadonly" style="font-size:13px;font-weight:500;color:var(--sage);padding:8px 0">0 天</div></div>
         <button class="btn btn-sage btn-sm" onclick="saveLv()">更新</button>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -282,6 +282,8 @@ textarea.fi{resize:vertical;min-height:60px;line-height:1.6}
         <div style="font-size:12px;white-space:nowrap"><span style="color:var(--sage);font-weight:500" id="lvUsedD">0</span><span style="color:var(--stone)" id="lvTotD"> / 0 天</span></div>
       </div>
       <div style="height:12px"></div>
+      <div style="margin-top:12px;max-height:160px;overflow-y:auto" id="lvDateList"></div>
+      <div style="height:10px"></div>
       <div class="ai-badge">✦ AI 建議</div>
       <div id="aiLv" class="ai-box amber"></div>
     </div>
@@ -290,6 +292,15 @@ textarea.fi{resize:vertical;min-height:60px;line-height:1.6}
       <div id="statCards" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
   </div>
+  <!-- LINKS SECTION -->
+  <div style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-family:'DM Serif Display',serif;font-size:20px">常用連結</div>
+      <button class="btn btn-sage btn-sm" onclick="openAddLink()">＋ 新增連結</button>
+    </div>
+    <div id="linksList"></div>
+  </div>
+
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div style="font-family:'DM Serif Display',serif;font-size:20px">年度目標</div>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -458,8 +469,8 @@ textarea.fi{resize:vertical;min-height:60px;line-height:1.6}
 </div>
 
 <script>
-const LS={todos:'wl3_t',projects:'wl3_p',leave:'wl3_l',memos:'wl3_m',goals:'wl3_g',calEvents:'wl3_c'};
-let D={todos:[],projects:[],leave:{total:15,used:0},memos:[],goals:[],calEvents:{}};
+const LS={todos:'wl3_t',projects:'wl3_p',leave:'wl3_l',memos:'wl3_m',goals:'wl3_g',calEvents:'wl3_c',links:'wl3_lk'};
+let D={todos:[],projects:[],leave:{total:15,used:0},memos:[],goals:[],calEvents:{},links:[]};
 
 // ── Gist 同步設定 ──────────────────────────────
 // 設定完成後會自動跨裝置同步，未設定則使用 localStorage
@@ -621,7 +632,7 @@ async function buildCryptoKey(password){
   const salt=enc.encode(saltStr.padEnd(16,'x').slice(0,16));
   return deriveKey(password,salt);
 }
-function rAll(){rTodos();rProjs();rCal();rLv();rMemos();rGoals();rStatCards();rAI();}
+function rAll(){rTodos();rProjs();rCal();rLv();rMemos();rGoals();rStatCards();rLinks();rAI();}
 
 function navDate(){const d=new Date(),dw=['日','一','二','三','四','五','六'];document.getElementById('navDate').textContent=`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} 週${dw[d.getDay()]}`;}
 navDate();setInterval(navDate,60000);
@@ -930,12 +941,23 @@ function svCalEv(){
   const txt=document.getElementById('calET').value.trim();if(!txt)return;
   document.getElementById('calET').value='';
   if(cCT==='todo'){
-    // Add to D.todos (source of truth for todos)
     const exists=D.todos.some(t=>t.text===txt&&t.date===calSD);
     if(!exists){D.todos.push({id:Date.now(),text:txt,priority:'mid',done:false,date:calSD});sv('todos');}
     rTodos();
+  } else if(cCT==='leave'){
+    // Leave: ask full or half day
+    const days=confirm(`「${txt}」
+
+確定：1 天特休
+取消：0.5 天（半天）`)?1:0.5;
+    if(!D.calEvents[calSD])D.calEvents[calSD]=[];
+    // Remove existing leave on same day first (only one leave per day)
+    D.calEvents[calSD]=D.calEvents[calSD].filter(e=>e.type!=='leave');
+    D.calEvents[calSD].push({type:'leave',text:txt||'特休',days});
+    sv('calEvents');
+    D.leave.used=computeLeaveUsed();sv('leave');
+    rLv();
   } else {
-    // Other types go to calEvents
     if(!D.calEvents[calSD])D.calEvents[calSD]=[];
     D.calEvents[calSD].push({type:cCT,text:txt});
     sv('calEvents');
@@ -944,10 +966,61 @@ function svCalEv(){
   renderDayPanel(calSD);
   scheduleGistSave();
 }
-function dlCalEv(ds,i){D.calEvents[ds].splice(i,1);if(!D.calEvents[ds].length)delete D.calEvents[ds];sv('calEvents');rCal();openCalDay(ds);}
+function dlCalEv(ds,i){
+  const wasLeave=D.calEvents[ds]?.[i]?.type==='leave';
+  D.calEvents[ds].splice(i,1);
+  if(!D.calEvents[ds].length)delete D.calEvents[ds];
+  sv('calEvents');
+  if(wasLeave){D.leave.used=computeLeaveUsed();sv('leave');rLv();}
+  rCal();renderDayPanel(ds);
+}
 
-function saveLv(){D.leave={total:parseInt(document.getElementById('lvTotal').value)||15,used:parseInt(document.getElementById('lvUsed').value)||0};sv('leave');rLv();rAI();}
-function rLv(){const{total,used}=D.leave;const pct=total>0?Math.min(100,Math.round(used/total*100)):0;document.getElementById('lvBar').style.width=pct+'%';document.getElementById('lvUsedD').textContent=used;document.getElementById('lvTotD').textContent=` / ${total} 天`;document.getElementById('lvTotal').value=total;document.getElementById('lvUsed').value=used;}
+function saveLv(){
+  D.leave.total=parseInt(document.getElementById('lvTotal').value)||15;
+  // used is now computed from calEvents, not manually entered
+  D.leave.used=computeLeaveUsed();
+  sv('leave');rLv();rAI();
+}
+function computeLeaveUsed(){
+  let total=0;
+  Object.entries(D.calEvents).forEach(([ds,evs])=>{
+    evs.filter(e=>e.type==='leave').forEach(e=>{
+      // e.days = 1 or 0.5, default 1
+      total+=(e.days||1);
+    });
+  });
+  return total;
+}
+function rLv(){
+  const computed=computeLeaveUsed();
+  D.leave.used=computed;
+  const{total}=D.leave;
+  const pct=total>0?Math.min(100,Math.round(computed/total*100)):0;
+  document.getElementById('lvBar').style.width=pct+'%';
+  document.getElementById('lvUsedD').textContent=computed;
+  document.getElementById('lvTotD').textContent=` / ${total} 天`;
+  document.getElementById('lvTotal').value=total;
+  const ro=document.getElementById('lvUsedReadonly');if(ro)ro.textContent=computed+' 天';
+  // Show leave dates list
+  const lvListEl=document.getElementById('lvDateList');
+  if(!lvListEl)return;
+  const leaveDates=[];
+  Object.entries(D.calEvents).forEach(([ds,evs])=>{
+    evs.filter(e=>e.type==='leave').forEach(e=>{
+      leaveDates.push({ds,text:e.text||'特休',days:e.days||1});
+    });
+  });
+  leaveDates.sort((a,b)=>a.ds.localeCompare(b.ds));
+  if(!leaveDates.length){lvListEl.innerHTML='<div style="font-size:12px;color:var(--stone)">尚未標記任何特休</div>';return;}
+  lvListEl.innerHTML=leaveDates.map(l=>{
+    const dt=new Date(l.ds+'T12:00:00');
+    return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(45,41,38,.06)">
+      <span style="font-size:12px;color:var(--stone);width:60px;flex-shrink:0">${dt.getMonth()+1}/${dt.getDate()}</span>
+      <span style="flex:1;font-size:13px">${l.text}</span>
+      <span style="font-size:11px;padding:2px 7px;border-radius:8px;background:var(--blush-l);color:var(--blush);flex-shrink:0">${l.days===0.5?'半天':'1天'}</span>
+    </div>`;
+  }).join('');
+}
 
 function swQ(b){curQV=b.dataset.q;document.querySelectorAll('.qtab').forEach(x=>x.classList.remove('on'));b.classList.add('on');rGoals();}
 function openAddGoal(id){
@@ -983,6 +1056,86 @@ function openST(t){
   document.getElementById('sTLbl').textContent=TL[t]+' 專案';document.getElementById('sTSub').textContent=`共 ${list.length} 個`;
   document.getElementById('sTGrid').innerHTML=list.map(p=>`<div class="pcard" onclick="cMo('moST');openD(${p.id})"><div class="pthumb ${p.type}">${p.thumb?`<img src="${p.thumb}">`:''}${tico(p.type)}<span class="ptype-badge">${TL[p.type]}</span></div><div class="pbody"><div class="pname">${p.name}</div><div class="pmeta">${p.start||''}${p.end?' → '+p.end:''}</div>${p.result?`<div class="presult">✦ ${p.result}</div>`:''}</div></div>`).join('');
   openMo('moST');
+}
+
+// ── LINKS ────────────────────────────────────────────
+let curLkCat='tool';
+const LK_CATS={tool:'工具',social:'社群平台',ref:'參考資料',other:'其他'};
+const LK_COLORS={tool:'var(--sky)',social:'var(--sage)',ref:'var(--amber)',other:'var(--stone)'};
+const LK_BG={tool:'var(--sky-l)',social:'var(--sage-l)',ref:'var(--amber-l)',other:'var(--warm)'};
+
+function openAddLink(id){
+  const lk=id?D.links?.find(x=>x.id===id):null;
+  document.getElementById('aLLbl').textContent=lk?'編輯連結':'新增連結';
+  document.getElementById('lkName').value=lk?lk.name:'';
+  document.getElementById('lkUrl').value=lk?lk.url:'';
+  document.getElementById('lkDesc').value=lk?lk.desc:'';
+  document.getElementById('lkEditId').value=lk?lk.id:'';
+  curLkCat=lk?lk.cat:'tool';
+  document.querySelectorAll('#lkCatPills .pill').forEach(b=>b.classList.remove('on'));
+  document.querySelector(`#lkCatPills [data-c="${curLkCat}"]`).classList.add('on');
+  openMo('moAddLink');
+}
+function selLkCat(b){
+  curLkCat=b.dataset.c;
+  document.querySelectorAll('#lkCatPills .pill').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+}
+function svLink(){
+  const name=document.getElementById('lkName').value.trim();
+  let url=document.getElementById('lkUrl').value.trim();
+  if(!name||!url)return;
+  if(!url.startsWith('http'))url='https://'+url;
+  if(!D.links)D.links=[];
+  const eid=document.getElementById('lkEditId').value;
+  const data={name,url,desc:document.getElementById('lkDesc').value.trim(),cat:curLkCat};
+  if(eid){const lk=D.links.find(x=>x.id==eid);if(lk)Object.assign(lk,data);}
+  else D.links.push({id:Date.now(),...data});
+  sv('links');rLinks();cMo('moAddLink');
+}
+function delLink(id){
+  if(!confirm('確定刪除這個連結？'))return;
+  D.links=(D.links||[]).filter(x=>x.id!==id);
+  sv('links');rLinks();
+}
+function rLinks(){
+  const el=document.getElementById('linksList');if(!el)return;
+  const links=D.links||[];
+  if(!links.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--stone);padding:8px 0">尚未新增任何連結</div>';
+    return;
+  }
+  // Group by category
+  const cats=['tool','social','ref','other'];
+  let h='<div style="display:flex;flex-direction:column;gap:14px">';
+  cats.forEach(cat=>{
+    const items=links.filter(lk=>lk.cat===cat);
+    if(!items.length)return;
+    h+=`<div>
+      <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--stone);margin-bottom:7px;display:flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${LK_COLORS[cat]}"></span>
+        ${LK_CATS[cat]}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+        ${items.map(lk=>`
+          <div style="background:white;border-radius:var(--rs);padding:12px 14px;box-shadow:var(--sh);display:flex;align-items:flex-start;gap:10px;transition:all .2s" onmouseover="this.style.boxShadow='var(--shh)'" onmouseout="this.style.boxShadow='var(--sh)'">
+            <div style="width:32px;height:32px;border-radius:8px;background:${LK_BG[lk.cat]};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+              ${{tool:'🔧',social:'📱',ref:'📚',other:'🔗'}[lk.cat]}
+            </div>
+            <div style="flex:1;min-width:0">
+              <a href="${lk.url}" target="_blank" style="font-size:13px;font-weight:500;color:var(--ink);text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onmouseover="this.style.color='var(--sage)'" onmouseout="this.style.color='var(--ink)'">${lk.name}</a>
+              ${lk.desc?`<div style="font-size:11px;color:var(--stone);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lk.desc}</div>`:''}
+            </div>
+            <div style="display:flex;gap:2px;flex-shrink:0">
+              <button class="bico" style="font-size:11px" onclick="openAddLink(${lk.id})">✎</button>
+              <button class="bico" style="font-size:11px;color:var(--blush)" onclick="delLink(${lk.id})">×</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  h+='</div>';
+  el.innerHTML=h;
 }
 
 function rAI(){
@@ -1243,6 +1396,32 @@ document.getElementById('todoDateQ').value=td();
       <div style="background:var(--amber-l);border-radius:var(--rs);padding:9px 12px;font-size:11px;color:var(--ink-l);line-height:1.6">⚠ 匯入會覆蓋目前所有資料，請先匯出備份再操作。</div>
     </div>
     <div class="mfoot"><button class="btn btn-ghost" onclick="cMo('moData')">關閉</button></div>
+  </div>
+</div>
+
+<!-- ADD LINK MODAL -->
+<div class="mo" id="moAddLink">
+  <div class="modal" style="max-width:440px">
+    <button class="mclose" onclick="cMo('moAddLink')">×</button>
+    <div class="mtitle" id="aLLbl">新增連結</div>
+    <div class="fl">名稱</div>
+    <input class="fi" id="lkName" placeholder="例如：worklog 工具、Garmin 後台">
+    <div class="fl">網址</div>
+    <input class="fi" id="lkUrl" placeholder="https://">
+    <div class="fl">說明（可選）</div>
+    <input class="fi" id="lkDesc" placeholder="一句話說明用途">
+    <div class="fl">分類</div>
+    <div class="pills" id="lkCatPills">
+      <button class="pill on" data-c="tool" onclick="selLkCat(this)">工具</button>
+      <button class="pill" data-c="social" onclick="selLkCat(this)">社群平台</button>
+      <button class="pill" data-c="ref" onclick="selLkCat(this)">參考資料</button>
+      <button class="pill" data-c="other" onclick="selLkCat(this)">其他</button>
+    </div>
+    <input type="hidden" id="lkEditId">
+    <div class="mfoot">
+      <button class="btn btn-ghost" onclick="cMo('moAddLink')">取消</button>
+      <button class="btn btn-sage" onclick="svLink()">儲存</button>
+    </div>
   </div>
 </div>
 
